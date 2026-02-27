@@ -1,0 +1,996 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Quiz — Múltipla Escolha</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0e0e12;
+      --surface:  #16161d;
+      --surface2: #1e1e28;
+      --border:   #2a2a3a;
+      --border2:  #383850;
+
+      --m1: #f72585;
+      --m2: #f4a261;
+      --m3: #06d6a0;
+      --m4: #4cc9f0;
+
+      --ok:   #39ff14;
+      --err:  #ff3a5c;
+      --gold: #ffd60a;
+      --text: #eeeef5;
+      --muted:#6b6b88;
+      --dim:  #3a3a52;
+
+      --mc:         #f72585;
+      --mc-glow:    rgba(247,37,133,.25);
+      --mc-bg:      rgba(247,37,133,.08);
+      --mc-accent:  #f72585;
+      --mc-dot:     #f72585;
+      --mc-btn:     #f72585;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Barlow',sans-serif;
+      background:var(--bg); color:var(--text);
+      min-height:100vh; overflow-x:hidden;
+    }
+
+    body::before {
+      content:''; position:fixed; inset:0;
+      background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0; opacity:.4;
+    }
+
+    .app { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:24px 20px 80px; }
+
+    /* ── HEADER ── */
+    .hdr { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:28px; flex-wrap:wrap; }
+    .hdr-left { display:flex; flex-direction:column; gap:4px; }
+    .game-label { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); }
+    .game-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.8rem,5vw,2.8rem); font-weight:900; line-height:1; letter-spacing:-1px; }
+    .game-title span { color:var(--gold); }
+
+    .xp-wrap { min-width:220px; flex:1; max-width:340px; }
+    .xp-top  { display:flex; justify-content:space-between; align-items:baseline; font-size:11px; margin-bottom:6px; }
+    .xp-label { font-family:'Barlow Condensed',sans-serif; font-weight:700; letter-spacing:2px; color:var(--gold); font-size:12px; }
+    .xp-val   { font-family:'Fira Code',monospace; font-size:11px; color:var(--muted); }
+    .xp-track { height:8px; background:var(--dim); border-radius:4px; overflow:hidden; border:1px solid var(--border); }
+    .xp-fill  { height:100%; border-radius:4px; background:linear-gradient(90deg,var(--gold),#ff9f00); box-shadow:0 0 10px rgba(255,214,10,.4); transition:width .6s cubic-bezier(.4,0,.2,1); width:0%; }
+
+    /* ── MODULE MAP ── */
+    .module-map { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:28px; }
+    .mod-card { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:12px 10px; text-align:center; position:relative; overflow:hidden; transition:border-color .3s; }
+    .mod-card::before { content:''; position:absolute; inset:0; background:var(--mc,transparent); opacity:.06; transition:opacity .3s; }
+    .mod-card.active { border-color:var(--mc); }
+    .mod-card.active::before { opacity:.12; }
+    .mod-card.done { border-color:rgba(57,255,20,.3); }
+    .mod-card.done::before { background:var(--ok); opacity:.07; }
+    .mod-icon { font-size:1.4rem; margin-bottom:4px; filter:grayscale(1); opacity:.4; transition:all .3s; }
+    .mod-card.active .mod-icon, .mod-card.done .mod-icon { filter:grayscale(0); opacity:1; }
+    .mod-name { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; color:var(--muted); transition:color .3s; }
+    .mod-card.active .mod-name { color:var(--mc); }
+    .mod-card.done  .mod-name  { color:var(--ok); }
+    .mod-score { font-family:'Fira Code',monospace; font-size:10px; color:var(--dim); margin-top:3px; transition:color .3s; }
+    .mod-card.done .mod-score { color:var(--ok); }
+    .mod-lock { position:absolute; top:6px; right:8px; font-size:10px; color:var(--dim); }
+    .mod-card.active .mod-lock, .mod-card.done .mod-lock { display:none; }
+
+    /* ── PROGRESS STRIP ── */
+    .prog-strip { background:var(--surface); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:24px; display:flex; align-items:center; gap:16px; }
+    .prog-module-name { font-family:'Barlow Condensed',sans-serif; font-weight:800; font-size:1rem; letter-spacing:1px; min-width:110px; color:var(--mc); transition:color .4s; }
+    .prog-dots { display:flex; gap:6px; flex:1; }
+    .pdot { flex:1; height:5px; border-radius:3px; background:var(--dim); transition:background .4s, box-shadow .4s; }
+    .pdot.done   { background:var(--mc-dot); }
+    .pdot.active { background:var(--mc-dot); box-shadow:0 0 6px var(--mc-dot); opacity:.6; }
+    .prog-frac { font-family:'Fira Code',monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+
+    /* ── CHIPS ── */
+    .chip-row { display:flex; gap:6px; margin-bottom:22px; flex-wrap:wrap; }
+    .chip { width:32px; height:32px; border-radius:6px; border:1px solid var(--border); background:var(--surface); display:flex; align-items:center; justify-content:center; font-family:'Barlow Condensed',sans-serif; font-size:13px; font-weight:700; color:var(--muted); transition:all .3s; }
+    .chip.c { background:rgba(57,255,20,.1); border-color:rgba(57,255,20,.4); color:var(--ok); }
+    .chip.e { background:rgba(255,58,92,.1); border-color:rgba(255,58,92,.4); color:var(--err); }
+    .chip.sep { width:1px; height:32px; border-radius:0; border:none; border-left:1px solid var(--border2); background:transparent; pointer-events:none; }
+
+    /* ── QUESTION CARD ── */
+    .q-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; animation:cardIn .3s cubic-bezier(.4,0,.2,1); transition:border-color .3s; }
+    @keyframes cardIn { from{opacity:0;transform:translateY(14px) scale(.985)} to{opacity:1;transform:translateY(0) scale(1)} }
+
+    .q-head { display:flex; align-items:center; justify-content:space-between; padding:12px 20px; border-bottom:1px solid var(--border); background:var(--surface2); }
+    .q-badge { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:2px; text-transform:uppercase; color:var(--muted); }
+    .q-tag { font-family:'Fira Code',monospace; font-size:12px; padding:3px 12px; border-radius:20px; border:1px solid color-mix(in srgb, var(--mc) 40%, transparent); background:color-mix(in srgb, var(--mc) 10%, transparent); color:var(--mc); transition:all .3s; }
+
+    .q-body { padding:22px 24px; }
+    .q-title { font-family:'Barlow Condensed',sans-serif; font-size:1.4rem; font-weight:800; margin-bottom:12px; line-height:1.2; }
+
+    /* code snippet */
+    .code-ctx { background:#0b0b10; border:1px solid var(--border); border-left:3px solid var(--mc); border-radius:6px; padding:14px 18px; margin-bottom:16px; font-family:'Fira Code',monospace; font-size:12.5px; line-height:1.9; transition:border-color .3s; white-space:pre; overflow-x:auto; }
+    .ck{color:#c792ea} .cf{color:#82aaff} .cs{color:#c3e88d} .co{color:#ffcb6b} .cm{color:#3d3d55;font-style:italic} .ct{color:#89ddff}
+
+    .q-text { font-size:.95rem; font-weight:300; line-height:1.7; color:rgba(238,238,245,.75); margin-bottom:20px; }
+    .q-text strong { color:var(--text); font-weight:600; }
+    .q-text code { font-family:'Fira Code',monospace; font-size:12px; background:rgba(255,255,255,.07); padding:1px 7px; border-radius:4px; color:#ffcb6b; }
+
+    /* ── OPTIONS ── */
+    .options { display:flex; flex-direction:column; gap:8px; margin-bottom:14px; }
+
+    .opt {
+      display:flex; align-items:center; gap:14px;
+      padding:13px 18px; border-radius:10px;
+      border:1.5px solid var(--border2);
+      background:var(--surface2);
+      cursor:pointer;
+      transition:border-color .2s, background .2s, transform .1s;
+      user-select:none;
+    }
+
+    .opt:hover:not(.disabled) {
+      border-color:var(--mc);
+      background:color-mix(in srgb, var(--mc) 8%, var(--surface2));
+    }
+
+    .opt.selected:not(.disabled) {
+      border-color:var(--mc);
+      background:color-mix(in srgb, var(--mc) 12%, var(--surface2));
+      box-shadow:0 0 0 3px var(--mc-glow);
+    }
+
+    .opt.disabled { cursor:default; pointer-events:none; }
+
+    .opt.correct {
+      border-color:var(--ok) !important;
+      background:rgba(57,255,20,.08) !important;
+      box-shadow:0 0 0 3px rgba(57,255,20,.12) !important;
+    }
+
+    .opt.wrong {
+      border-color:var(--err) !important;
+      background:rgba(255,58,92,.08) !important;
+    }
+
+    .opt.reveal-correct {
+      border-color:rgba(57,255,20,.4) !important;
+      background:rgba(57,255,20,.05) !important;
+    }
+
+    .opt-letter {
+      width:28px; height:28px; border-radius:6px; flex-shrink:0;
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Barlow Condensed',sans-serif; font-size:14px; font-weight:800;
+      background:var(--dim); color:var(--muted);
+      border:1px solid var(--border2);
+      transition:background .2s, color .2s, border-color .2s;
+    }
+
+    .opt.selected:not(.disabled) .opt-letter {
+      background:var(--mc); color:#000; border-color:var(--mc);
+    }
+
+    .opt.correct .opt-letter { background:var(--ok) !important; color:#000 !important; border-color:var(--ok) !important; }
+    .opt.wrong   .opt-letter { background:var(--err) !important; color:#fff !important; border-color:var(--err) !important; }
+    .opt.reveal-correct .opt-letter { background:rgba(57,255,20,.3) !important; color:var(--ok) !important; border-color:var(--ok) !important; }
+
+    .opt-text { font-size:.92rem; line-height:1.4; flex:1; }
+    .opt-text code { font-family:'Fira Code',monospace; font-size:12px; background:rgba(255,255,255,.07); padding:1px 6px; border-radius:4px; color:#ffcb6b; }
+
+    .opt-check { font-size:16px; margin-left:auto; opacity:0; transition:opacity .2s; }
+    .opt.correct .opt-check, .opt.wrong .opt-check, .opt.reveal-correct .opt-check { opacity:1; }
+
+    /* ── CONFIRM BTN ── */
+    .btn-confirm {
+      width:100%; padding:13px; border:none; border-radius:10px;
+      font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; letter-spacing:1px;
+      cursor:pointer; text-transform:uppercase;
+      background:var(--mc-btn); color:#000;
+      transition:opacity .2s, transform .1s; margin-bottom:10px;
+      box-shadow:0 3px 14px var(--mc-glow);
+      opacity:.4;
+    }
+
+    .btn-confirm.ready { opacity:1; }
+    .btn-confirm:disabled { cursor:default; opacity:.3; }
+
+    /* ── FEEDBACK ── */
+    .feedback { display:none; padding:14px 18px; border-radius:8px; font-size:.88rem; line-height:1.7; margin-top:2px; animation:cardIn .25s ease; }
+    .feedback.show { display:block; }
+    .feedback.ok   { background:rgba(57,255,20,.06); border:1px solid rgba(57,255,20,.2); color:#b8ffc2; }
+    .feedback.fail { background:rgba(255,58,92,.06); border:1px solid rgba(255,58,92,.2); color:#ffb8c2; }
+    .feedback .fb-head { font-weight:700; margin-bottom:3px; font-size:.93rem; }
+    .feedback.ok   .fb-head { color:var(--ok); }
+    .feedback.fail .fb-head { color:var(--err); }
+    .feedback code { font-family:'Fira Code',monospace; font-size:12px; background:rgba(255,255,255,.08); padding:1px 6px; border-radius:4px; color:#ffcb6b; }
+
+    /* ── NEXT ── */
+    .btn-next { display:none; width:100%; padding:12px; border:1.5px solid var(--border2); background:transparent; color:var(--text); font-family:'Barlow Condensed',sans-serif; font-size:15px; font-weight:700; letter-spacing:1px; border-radius:10px; cursor:pointer; transition:background .2s, border-color .2s; margin-top:8px; }
+    .btn-next:hover { background:var(--surface2); border-color:var(--text); }
+    .btn-next.show { display:block; animation:cardIn .3s ease; }
+
+    /* ── MODULE COMPLETE ── */
+    #mod-complete { display:none; animation:cardIn .4s ease; }
+    #mod-complete.show { display:block; }
+    .mc-card { background:var(--surface); border:2px solid var(--mc); border-radius:18px; padding:44px 36px; text-align:center; position:relative; overflow:hidden; box-shadow:0 0 60px var(--mc-glow); }
+    .mc-card::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--mc) 15%, transparent) 0%, transparent 60%); }
+    .mc-inner { position:relative; }
+    .mc-stars { font-size:2rem; letter-spacing:8px; margin-bottom:16px; }
+    .mc-tag { font-family:'Barlow Condensed',sans-serif; font-size:10px; font-weight:700; letter-spacing:4px; text-transform:uppercase; color:var(--muted); margin-bottom:8px; }
+    .mc-title { font-family:'Barlow Condensed',sans-serif; font-size:2.4rem; font-weight:900; line-height:1; margin-bottom:6px; color:var(--mc); text-shadow:0 0 30px var(--mc-glow); }
+    .mc-score-row { display:flex; align-items:center; justify-content:center; gap:24px; margin:24px 0; flex-wrap:wrap; }
+    .mc-stat { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .mc-num { font-family:'Barlow Condensed',sans-serif; font-size:2.8rem; font-weight:900; line-height:1; }
+    .mc-num.ok  { color:var(--ok); }
+    .mc-num.err { color:var(--err); }
+    .mc-num.xp  { color:var(--gold); }
+    .mc-lbl { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+    .mc-msg { font-size:.95rem; color:var(--muted); margin-bottom:28px; font-style:italic; line-height:1.5; }
+    .btn-continue { padding:14px 40px; border:none; border-radius:10px; font-family:'Barlow Condensed',sans-serif; font-size:17px; font-weight:800; letter-spacing:2px; cursor:pointer; text-transform:uppercase; background:var(--mc); color:#000; transition:opacity .2s; box-shadow:0 4px 24px var(--mc-glow); }
+    .btn-continue:hover { opacity:.85; }
+
+    /* ── FINAL ── */
+    #final-screen { display:none; animation:cardIn .5s ease; }
+    #final-screen.show { display:block; }
+    .final-wrap { background:var(--surface); border:1px solid var(--border2); border-radius:20px; overflow:hidden; }
+    .final-banner { background:linear-gradient(135deg,#1a0030,#001a30,#001a14); padding:40px 36px 32px; text-align:center; border-bottom:1px solid var(--border2); position:relative; overflow:hidden; }
+    .final-banner::before { content:''; position:absolute; inset:0; background:radial-gradient(ellipse at 50% 100%, rgba(255,214,10,.06), transparent 70%); }
+    .final-trophy { font-size:3.5rem; margin-bottom:12px; position:relative; }
+    .final-title { font-family:'Barlow Condensed',sans-serif; font-size:clamp(1.8rem,5vw,3rem); font-weight:900; line-height:1; margin-bottom:4px; position:relative; }
+    .final-sub { color:var(--muted); font-size:.9rem; position:relative; }
+    .final-big-score { font-family:'Barlow Condensed',sans-serif; font-size:clamp(4rem,14vw,7rem); font-weight:900; line-height:1; color:var(--gold); text-shadow:0 0 40px rgba(255,214,10,.5); position:relative; }
+    .final-denom { font-size:2.5rem; opacity:.4; }
+    .final-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
+    .final-cell { background:var(--surface); padding:20px 24px; display:flex; flex-direction:column; gap:4px; }
+    .fc-mod { font-family:'Barlow Condensed',sans-serif; font-size:11px; font-weight:700; letter-spacing:2px; text-transform:uppercase; }
+    .fc-score { font-family:'Barlow Condensed',sans-serif; font-size:1.6rem; font-weight:900; line-height:1; }
+    .fc-chips { display:flex; gap:4px; margin-top:4px; }
+    .fc-chip { width:18px; height:18px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; }
+    .fc-chip.c { background:rgba(57,255,20,.15); color:var(--ok); }
+    .fc-chip.e { background:rgba(255,58,92,.15); color:var(--err); }
+    .final-actions { padding:28px 36px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .btn-restart { padding:13px 32px; border-radius:10px; cursor:pointer; font-family:'Barlow Condensed',sans-serif; font-size:16px; font-weight:800; letter-spacing:1px; text-transform:uppercase; background:var(--gold); color:#000; border:none; transition:opacity .2s; }
+    .btn-restart:hover { opacity:.85; }
+
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+    @keyframes pop   { 0%{transform:scale(1)} 40%{transform:scale(1.02)} 100%{transform:scale(1)} }
+    .shake { animation:shake .3s ease; }
+    .pop   { animation:pop   .3s ease; }
+
+    @media (max-width:560px) {
+      .module-map { grid-template-columns:repeat(2,1fr); }
+      .final-grid { grid-template-columns:1fr; }
+      .hdr { flex-direction:column; }
+      .xp-wrap { max-width:100%; width:100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="game-label">JavaScript · Múltipla Escolha</div>
+      <div class="game-title">JS <span>MCQ</span></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top">
+        <span class="xp-label">⚡ XP</span>
+        <span class="xp-val" id="xp-val">0 / 2000</span>
+      </div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- MODULE MAP -->
+  <div class="module-map" id="mod-map"></div>
+
+  <!-- PROGRESS STRIP -->
+  <div class="prog-strip" id="prog-strip">
+    <div class="prog-module-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-frac" id="prog-frac">0/20</div>
+  </div>
+
+  <!-- CHIPS -->
+  <div class="chip-row" id="chip-row"></div>
+
+  <!-- QUESTION AREA -->
+  <div id="q-area"></div>
+
+  <!-- MODULE COMPLETE -->
+  <div id="mod-complete">
+    <div class="mc-card" id="mc-card">
+      <div class="mc-inner">
+        <div class="mc-stars" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">Módulo Completo</div>
+        <div class="mc-title" id="mc-title">—</div>
+        <div class="mc-score-row">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Corretas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+        <button class="btn-continue" id="btn-continue" onclick="startNextModule()">PRÓXIMO MÓDULO →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-banner">
+        <div class="final-trophy">🏆</div>
+        <div class="final-title">Treino Concluído!</div>
+        <div class="final-sub" id="final-sub">Resultado final</div>
+        <div class="final-big-score"><span id="f-num">0</span><span class="final-denom">/20</span></div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions">
+        <button class="btn-restart" onclick="restart()">↩ Reiniciar do Zero</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  MÓDULOS — 4 × 5 QUESTÕES DE MÚLTIPLA ESCOLHA
+// ══════════════════════════════════════════════════════════
+const MODULES = [
+  {
+    id:'dom', name:'Seletores DOM', icon:'🎯',
+    color:'#f72585', glow:'rgba(247,37,133,.25)', bg:'rgba(247,37,133,.1)', bg2:'rgba(247,37,133,.15)',
+    questions:[
+      {
+        tag:'getElementById',
+        title:'Qual o retorno quando o ID não existe?',
+        code:null,
+        text:'O código abaixo é executado numa página que <strong>não possui</strong> nenhum elemento com id <code>"fantasma"</code>. O que a variável <code>el</code> vai conter?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">el</span> = document.<span class="cf">getElementById</span>(<span class="cs">'fantasma'</span>);`,
+        options:[
+          { letter:'A', text:'<code>undefined</code>' },
+          { letter:'B', text:'<code>null</code>', correct:true },
+          { letter:'C', text:'Um objeto vazio <code>{}</code>' },
+          { letter:'D', text:'<code>false</code>' },
+          { letter:'E', text:'Lança um <code>TypeError</code>' },
+        ],
+        explanation:'<code>getElementById</code> retorna <code>null</code> quando o elemento não é encontrado — não <code>undefined</code>. Por isso sempre faça <code>if (el)</code> antes de usar.'
+      },
+      {
+        tag:'querySelector vs getElementById',
+        title:'Diferença de seletor',
+        code:null,
+        text:'Qual das opções abaixo é a forma <strong>correta</strong> de usar <code>querySelector</code> para selecionar o mesmo elemento que <code>getElementById(\'menu\')</code> selecionaria?',
+        codeSnippet:null,
+        options:[
+          { letter:'A', text:'<code>document.querySelector("menu")</code>' },
+          { letter:'B', text:'<code>document.querySelector(".menu")</code>' },
+          { letter:'C', text:'<code>document.querySelector("#menu")</code>', correct:true },
+          { letter:'D', text:'<code>document.querySelector("[menu]")</code>' },
+          { letter:'E', text:'<code>document.querySelector("id=menu")</code>' },
+        ],
+        explanation:'No <code>querySelector</code>, IDs precisam do prefixo <code>#</code> — exatamente como no CSS. Já o <code>getElementById</code> recebe só o nome, sem prefixo.'
+      },
+      {
+        tag:'querySelectorAll',
+        title:'Tipo de retorno',
+        code:null,
+        text:'<code>querySelectorAll</code> retorna uma lista de elementos. Como chamamos esse tipo de objeto, e qual a sua principal diferença em relação a um Array?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">itens</span> = document.<span class="cf">querySelectorAll</span>(<span class="cs">'.item'</span>);`,
+        options:[
+          { letter:'A', text:'Array — tem todos os métodos de array como <code>.map()</code> e <code>.filter()</code>' },
+          { letter:'B', text:'HTMLCollection — se atualiza automaticamente quando o DOM muda' },
+          { letter:'C', text:'NodeList estática — não tem <code>.map()</code>, mas tem <code>.forEach()</code>', correct:true },
+          { letter:'D', text:'NodeList viva — se atualiza quando o DOM muda' },
+          { letter:'E', text:'Set — garante elementos únicos' },
+        ],
+        explanation:'<code>querySelectorAll</code> retorna uma <strong>NodeList estática</strong>: não se atualiza se o DOM mudar, tem <code>.forEach()</code> nativo, mas não tem <code>.map()</code> ou <code>.filter()</code> diretamente — para isso, converta com <code>Array.from()</code>.'
+      },
+      {
+        tag:'getElementsByClassName',
+        title:'HTMLCollection vs NodeList',
+        code:null,
+        text:'Uma <strong>HTMLCollection</strong> (retorno de <code>getElementsByClassName</code>) é chamada de "coleção viva". O que isso significa na prática?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">lista</span> = document.<span class="cf">getElementsByClassName</span>(<span class="cs">'ativo'</span>);`,
+        options:[
+          { letter:'A', text:'Ela suporta <code>.forEach()</code> diretamente, ao contrário da NodeList' },
+          { letter:'B', text:'Ela se atualiza automaticamente quando elementos com a classe são adicionados ou removidos do DOM', correct:true },
+          { letter:'C', text:'Ela só existe enquanto a variável estiver no escopo' },
+          { letter:'D', text:'Ela é mais rápida que <code>querySelectorAll</code> em qualquer situação' },
+          { letter:'E', text:'Ela retorna apenas o primeiro elemento encontrado' },
+        ],
+        explanation:'"Viva" significa que a HTMLCollection reflete mudanças no DOM em tempo real. Se você adicionar um elemento com a classe depois de criar a coleção, ele aparece automaticamente. <code>querySelectorAll</code> retorna um snapshot estático.'
+      },
+      {
+        tag:'Seletor avançado',
+        title:'querySelector com atributo',
+        code:null,
+        text:'Você precisa selecionar o <strong>primeiro</strong> input do tipo <code>email</code> na página. Qual seletor usar com <code>querySelector</code>?',
+        codeSnippet:`<span class="cm">// Selecione apenas o primeiro input[type="email"]</span>`,
+        options:[
+          { letter:'A', text:'<code>document.querySelector("input.email")</code>' },
+          { letter:'B', text:'<code>document.querySelector("#email")</code>' },
+          { letter:'C', text:'<code>document.querySelector("input[type=\'email\']")</code>', correct:true },
+          { letter:'D', text:'<code>document.querySelector("input:email")</code>' },
+          { letter:'E', text:'<code>document.querySelector("type[email]")</code>' },
+        ],
+        explanation:'<code>querySelector</code> aceita <strong>qualquer seletor CSS válido</strong> — inclusive seletores de atributo como <code>[type="email"]</code>. Essa é sua grande vantagem sobre <code>getElementById</code> e <code>getElementsByClassName</code>.'
+      },
+    ]
+  },
+
+  {
+    id:'styles', name:'Alterar Estilos', icon:'🎨',
+    color:'#f4a261', glow:'rgba(244,162,97,.25)', bg:'rgba(244,162,97,.1)', bg2:'rgba(244,162,97,.15)',
+    questions:[
+      {
+        tag:'style vs CSS',
+        title:'Por que o estilo não aplicou?',
+        code:null,
+        text:'O desenvolvedor tentou mudar o tamanho da fonte mas <strong>não funcionou</strong>. Qual é o erro no código abaixo?',
+        codeSnippet:`<span class="co">div</span>.style.<span class="co">fontSize</span> = <span class="cs">24</span>; <span class="cm">// ← não funciona</span>`,
+        options:[
+          { letter:'A', text:'Deveria ser <code>div.style.font-size</code> com hífen' },
+          { letter:'B', text:'Deveria usar <code>setAttribute</code> em vez de <code>style</code>' },
+          { letter:'C', text:'O valor precisa ser uma string com unidade: <code>"24px"</code>', correct:true },
+          { letter:'D', text:'<code>fontSize</code> não existe no JS, é <code>fontSz</code>' },
+          { letter:'E', text:'Só funciona com <code>classList</code>, não com <code>style</code> direto' },
+        ],
+        explanation:'Propriedades de estilo JS sempre recebem <strong>strings</strong>. O número <code>24</code> sem unidade é ignorado silenciosamente. O correto é <code>"24px"</code>, <code>"1.5rem"</code>, <code>"2em"</code>, etc.'
+      },
+      {
+        tag:'classList.toggle',
+        title:'O que toggle retorna?',
+        code:null,
+        text:'Além de alternar a classe, <code>classList.toggle()</code> tem um valor de retorno. O que ele retorna?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">resultado</span> = <span class="co">el</span>.classList.<span class="cf">toggle</span>(<span class="cs">'ativo'</span>);`,
+        options:[
+          { letter:'A', text:'Retorna o elemento modificado' },
+          { letter:'B', text:'Retorna a string com todas as classes atuais' },
+          { letter:'C', text:'Retorna <code>true</code> se a classe foi adicionada, <code>false</code> se foi removida', correct:true },
+          { letter:'D', text:'Retorna <code>undefined</code> sempre' },
+          { letter:'E', text:'Retorna o número total de classes do elemento' },
+        ],
+        explanation:'<code>toggle</code> retorna <code>true</code> se a classe <strong>foi adicionada</strong> e <code>false</code> se <strong>foi removida</strong>. Útil para sincronizar estado sem precisar de uma variável separada.'
+      },
+      {
+        tag:'style inline vs classe',
+        title:'Qual abordagem é melhor?',
+        code:null,
+        text:'Você precisa criar um botão que muda visual ao ser clicado (destaque/normal). Qual abordagem é <strong>mais recomendada</strong>?',
+        codeSnippet:null,
+        options:[
+          { letter:'A', text:'<code>btn.style.backgroundColor = "blue"</code> e <code>btn.style.color = "white"</code> direto no JS' },
+          { letter:'B', text:'Definir uma classe CSS <code>.destaque</code> e usar <code>classList.toggle("destaque")</code>', correct:true },
+          { letter:'C', text:'Usar <code>setAttribute("style", "...")</code> com a string CSS completa' },
+          { letter:'D', text:'Reescrever o HTML do elemento com <code>innerHTML</code> a cada clique' },
+          { letter:'E', text:'Ambas as opções A e C são equivalentes e igualmente recomendadas' },
+        ],
+        explanation:'Usar <strong>classes CSS</strong> com <code>classList</code> é a prática recomendada: mantém os estilos no CSS (separação de responsabilidades), facilita manutenção e permite transições com <code>transition</code> no CSS.'
+      },
+      {
+        tag:'style.backgroundColor',
+        title:'Lendo o estilo inline',
+        code:null,
+        text:'Um elemento tem <code>background-color: red</code> definido <strong>no CSS externo</strong>. O que o código abaixo vai exibir no console?',
+        codeSnippet:`<span class="co">el</span>.style.<span class="co">backgroundColor</span> = <span class="cs">'blue'</span>;
+console.<span class="cf">log</span>(<span class="co">el</span>.style.<span class="co">backgroundColor</span>); <span class="cm">// ?</span>`,
+        options:[
+          { letter:'A', text:'<code>"red"</code> — lê o estilo computado' },
+          { letter:'B', text:'<code>""</code> (string vazia) — porque foi do CSS externo' },
+          { letter:'C', text:'<code>"blue"</code> — o que foi definido via JS', correct:true },
+          { letter:'D', text:'<code>null</code>' },
+          { letter:'E', text:'Lança um erro porque há conflito de estilos' },
+        ],
+        explanation:'<code>el.style</code> reflete apenas estilos <strong>inline</strong> (definidos via JS ou no atributo style do HTML). Depois de definir <code>\'blue\'</code> via JS, ele lê <code>"blue"</code>. Para ler o estilo computado (CSS externo), use <code>getComputedStyle(el)</code>.'
+      },
+      {
+        tag:'classList.contains',
+        title:'Verificar se tem a classe',
+        code:null,
+        text:'Qual método você usa para <strong>verificar</strong> se um elemento já possui determinada classe, sem adicioná-la ou removê-la?',
+        codeSnippet:`<span class="cm">// Verificar se o botão tem a classe "ativo"</span>
+<span class="ck">if</span> ( btn.classList.<span class="blank">???</span>(<span class="cs">'ativo'</span>) ) { <span class="cm">/* ... */</span> }`,
+        options:[
+          { letter:'A', text:'<code>classList.has("ativo")</code>' },
+          { letter:'B', text:'<code>classList.includes("ativo")</code>' },
+          { letter:'C', text:'<code>classList.contains("ativo")</code>', correct:true },
+          { letter:'D', text:'<code>classList.check("ativo")</code>' },
+          { letter:'E', text:'<code>classList.exists("ativo")</code>' },
+        ],
+        explanation:'O método correto é <code>classList.contains()</code> — retorna <code>true</code> ou <code>false</code>. Cuidado: arrays usam <code>.includes()</code> e objetos usam <code>hasOwnProperty()</code>, mas classList usa <code>.contains()</code>.'
+      },
+    ]
+  },
+
+  {
+    id:'storage', name:'localStorage', icon:'💾',
+    color:'#06d6a0', glow:'rgba(6,214,160,.25)', bg:'rgba(6,214,160,.1)', bg2:'rgba(6,214,160,.15)',
+    questions:[
+      {
+        tag:'Tipo de dados',
+        title:'O que acontece ao salvar um objeto?',
+        code:null,
+        text:'Um desenvolvedor tentou salvar um objeto diretamente no localStorage. O que vai estar armazenado após esse código?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">user</span> = { nome: <span class="cs">'Ana'</span>, idade: <span class="cs">25</span> };
+localStorage.<span class="cf">setItem</span>(<span class="cs">'usuario'</span>, <span class="co">user</span>);`,
+        options:[
+          { letter:'A', text:'<code>{"nome":"Ana","idade":25}</code> — o objeto é serializado automaticamente' },
+          { letter:'B', text:'<code>[object Object]</code> — o objeto foi convertido para string', correct:true },
+          { letter:'C', text:'<code>undefined</code> — objetos não podem ser salvos no localStorage' },
+          { letter:'D', text:'<code>null</code> — o localStorage ignora tipos não primitivos' },
+          { letter:'E', text:'Lança um <code>TypeError</code> porque o valor não é string' },
+        ],
+        explanation:'localStorage aceita apenas <strong>strings</strong>. Ao passar um objeto, o JS chama implicitamente <code>.toString()</code> nele, resultando em <code>"[object Object]"</code> — inútil. Sempre use <code>JSON.stringify()</code> antes de salvar objetos.'
+      },
+      {
+        tag:'getItem — chave inexistente',
+        title:'Chave que não existe',
+        code:null,
+        text:'O localStorage está vazio. O que <code>getItem</code> retorna ao tentar buscar uma chave que nunca foi salva?',
+        codeSnippet:`localStorage.<span class="cf">clear</span>(); <span class="cm">// limpa tudo</span>
+<span class="ck">const</span> <span class="co">val</span> = localStorage.<span class="cf">getItem</span>(<span class="cs">'tema'</span>);`,
+        options:[
+          { letter:'A', text:'<code>undefined</code>' },
+          { letter:'B', text:'<code>""</code> (string vazia)' },
+          { letter:'C', text:'<code>null</code>', correct:true },
+          { letter:'D', text:'Lança um <code>ReferenceError</code>' },
+          { letter:'E', text:'<code>false</code>' },
+        ],
+        explanation:'<code>getItem</code> retorna <code>null</code> quando a chave não existe. Então o padrão comum é: <code>const tema = localStorage.getItem("tema") || "light"</code> — usando o <code>||</code> para definir um valor padrão.'
+      },
+      {
+        tag:'JSON.stringify + JSON.parse',
+        title:'Fluxo correto de objeto',
+        code:null,
+        text:'Qual é a <strong>ordem correta</strong> das operações para salvar um objeto e recuperá-lo do localStorage sem perder os dados?',
+        codeSnippet:null,
+        options:[
+          { letter:'A', text:'Salvar: <code>setItem(k, obj)</code> → Ler: <code>JSON.parse(getItem(k))</code>' },
+          { letter:'B', text:'Salvar: <code>JSON.parse(obj)</code> → Ler: <code>JSON.stringify(getItem(k))</code>' },
+          { letter:'C', text:'Salvar: <code>setItem(k, JSON.stringify(obj))</code> → Ler: <code>JSON.parse(getItem(k))</code>', correct:true },
+          { letter:'D', text:'Salvar: <code>setItem(k, JSON.parse(obj))</code> → Ler: <code>JSON.stringify(getItem(k))</code>' },
+          { letter:'E', text:'Não é necessário converter — <code>setItem</code> já serializa automaticamente' },
+        ],
+        explanation:'O fluxo correto: <strong>stringify ao salvar</strong> (objeto → string JSON) e <strong>parse ao ler</strong> (string JSON → objeto). <code>JSON.parse(JSON.stringify(obj))</code> é o ciclo completo de serialização.'
+      },
+      {
+        tag:'Escopo do localStorage',
+        title:'Onde os dados ficam?',
+        code:null,
+        text:'Um usuário salva dados no localStorage do site <strong>meusite.com</strong> em modo normal. Quais das situações abaixo os dados <strong>ainda estarão disponíveis</strong>?',
+        codeSnippet:null,
+        options:[
+          { letter:'A', text:'Após fechar e reabrir a aba' },
+          { letter:'B', text:'Após reiniciar o computador' },
+          { letter:'C', text:'Em outra aba aberta do mesmo meusite.com' },
+          { letter:'D', text:'Todas as anteriores estão corretas', correct:true },
+          { letter:'E', text:'Nenhuma — o localStorage é apagado ao fechar a aba' },
+        ],
+        explanation:'localStorage persiste até ser explicitamente removido (via JS ou configurações do browser). Os dados sobrevivem a: fechar aba, fechar browser, reiniciar o PC. Diferente do <code>sessionStorage</code>, que é apagado ao fechar a aba.'
+      },
+      {
+        tag:'removeItem vs clear',
+        title:'Diferença entre remove e clear',
+        code:null,
+        text:'O sistema tem 3 chaves no localStorage: <code>"sessao"</code>, <code>"tema"</code> e <code>"idioma"</code>. O código abaixo vai apagar <strong>quantas</strong> chaves?',
+        codeSnippet:`localStorage.<span class="cf">removeItem</span>(<span class="cs">'sessao'</span>);`,
+        options:[
+          { letter:'A', text:'Zero — <code>removeItem</code> apenas marca para deletar' },
+          { letter:'B', text:'Uma — apenas a chave <code>"sessao"</code>', correct:true },
+          { letter:'C', text:'Duas — <code>"sessao"</code> e sua chave associada' },
+          { letter:'D', text:'Três — apaga todas as chaves do domínio' },
+          { letter:'E', text:'Depende do browser' },
+        ],
+        explanation:'<code>removeItem("sessao")</code> apaga <strong>apenas aquela chave</strong>. As chaves <code>"tema"</code> e <code>"idioma"</code> continuam intactas. Para apagar tudo de uma vez, usa-se <code>localStorage.clear()</code>.'
+      },
+    ]
+  },
+
+  {
+    id:'fetch', name:'Fetch & Async', icon:'🌐',
+    color:'#4cc9f0', glow:'rgba(76,201,240,.25)', bg:'rgba(76,201,240,.1)', bg2:'rgba(76,201,240,.15)',
+    questions:[
+      {
+        tag:'Promise',
+        title:'O que fetch() retorna?',
+        code:null,
+        text:'Ao chamar <code>fetch(url)</code>, o código continua executando imediatamente. Por quê? O que exatamente o <code>fetch</code> retorna?',
+        codeSnippet:`<span class="ck">const</span> <span class="co">resultado</span> = fetch(<span class="cs">'https://api.exemplo.com/dados'</span>);
+console.<span class="cf">log</span>(<span class="co">resultado</span>); <span class="cm">// o que aparece aqui?</span>`,
+        options:[
+          { letter:'A', text:'Os dados JSON já prontos para usar' },
+          { letter:'B', text:'Um objeto <code>Response</code> com o corpo da resposta' },
+          { letter:'C', text:'Uma <code>Promise</code> — uma promessa de valor futuro', correct:true },
+          { letter:'D', text:'<code>undefined</code> — fetch não tem retorno síncrono' },
+          { letter:'E', text:'Um número representando o status HTTP' },
+        ],
+        explanation:'<code>fetch()</code> retorna uma <strong>Promise</strong>. O JS não espera a resposta — continua executando e "promete" que vai ter um valor depois. Por isso usamos <code>.then()</code> ou <code>await</code> para processar o resultado quando ele chegar.'
+      },
+      {
+        tag:'.then() chain',
+        title:'Por que dois .then()?',
+        code:null,
+        text:'Por que normalmente encadeamos <strong>dois</strong> <code>.then()</code> após um <code>fetch()</code>?',
+        codeSnippet:`fetch(url)
+  .then(<span class="co">res</span>  => <span class="co">res</span>.<span class="cf">json</span>())  <span class="cm">// 1º</span>
+  .then(<span class="co">data</span> => { <span class="cm">/* usar */</span> }) <span class="cm">// 2º</span>`,
+        options:[
+          { letter:'A', text:'Por convenção — tecnicamente um só funcionaria da mesma forma' },
+          { letter:'B', text:'O primeiro trata erros de rede, o segundo trata erros de parsing' },
+          { letter:'C', text:'<code>res.json()</code> também retorna uma Promise, então precisamos de outro <code>.then()</code> para pegar o valor resolvido', correct:true },
+          { letter:'D', text:'O primeiro <code>.then()</code> é para tipos primitivos, o segundo para objetos' },
+          { letter:'E', text:'Dois <code>.then()</code> executam em paralelo, acelerando o processamento' },
+        ],
+        explanation:'<code>res.json()</code> não retorna o objeto diretamente — ele retorna <strong>outra Promise</strong> que vai resolver com os dados. Por isso precisamos de um segundo <code>.then()</code> para pegar o valor final já resolvido.'
+      },
+      {
+        tag:'.catch()',
+        title:'Quando .catch() é acionado?',
+        code:null,
+        text:'Em qual das situações abaixo o <code>.catch()</code> ao final da cadeia <strong>NÃO</strong> é acionado?',
+        codeSnippet:`fetch(url)
+  .then(<span class="co">res</span> => <span class="co">res</span>.<span class="cf">json</span>())
+  .then(<span class="co">data</span> => console.<span class="cf">log</span>(<span class="co">data</span>))
+  .<span class="cf">catch</span>(<span class="co">err</span> => console.<span class="cf">log</span>(<span class="cs">'erro'</span>));`,
+        options:[
+          { letter:'A', text:'A URL está incorreta e a requisição falha' },
+          { letter:'B', text:'Não há conexão com a internet' },
+          { letter:'C', text:'O servidor retorna status <code>404</code> (não encontrado)', correct:true },
+          { letter:'D', text:'O JSON retornado está malformado e <code>res.json()</code> falha' },
+          { letter:'E', text:'O servidor demora demais e ocorre timeout' },
+        ],
+        explanation:'Surpreendente: <code>fetch</code> <strong>não rejeita a Promise</strong> para erros HTTP (404, 500, etc.) — a Promise resolve normalmente! O <code>.catch()</code> só é acionado em falhas de rede. Para tratar 404, você precisa checar <code>res.ok</code> ou <code>res.status</code> no primeiro <code>.then()</code>.'
+      },
+      {
+        tag:'async/await',
+        title:'async/await e try/catch',
+        code:null,
+        text:'Ao usar <code>async/await</code>, como devemos tratar erros de rede (equivalente ao <code>.catch()</code>)?',
+        codeSnippet:`<span class="ck">async</span> <span class="ck">function</span> <span class="cf">buscar</span>() {
+  <span class="cm">// Como tratar erros aqui?</span>
+  <span class="ck">const</span> <span class="co">res</span> = <span class="ck">await</span> fetch(url);
+  <span class="ck">const</span> <span class="co">data</span> = <span class="ck">await</span> <span class="co">res</span>.<span class="cf">json</span>();
+}`,
+        options:[
+          { letter:'A', text:'Adicionar <code>.catch()</code> ao final da função: <code>buscar().catch()</code>' },
+          { letter:'B', text:'Usar <code>try { } catch(err) { }</code> em volta do código com await', correct:true },
+          { letter:'C', text:'Declarar a função com <code>async safe function</code>' },
+          { letter:'D', text:'Não é necessário — <code>await</code> trata erros automaticamente' },
+          { letter:'E', text:'Usar <code>if (await) { } else { }</code>' },
+        ],
+        explanation:'Com <code>async/await</code>, erros são tratados com o clássico <code>try/catch</code>. O bloco <code>try</code> tenta executar o código, e se qualquer <code>await</code> rejeitar, o <code>catch(err)</code> captura — equivalente ao <code>.catch()</code> nas Promises.'
+      },
+      {
+        tag:'async/await vs .then()',
+        title:'Equivalência de sintaxes',
+        code:null,
+        text:'Os dois trechos de código abaixo são <strong>equivalentes</strong>? O que eles fazem?',
+        codeSnippet:`<span class="cm">// Versão A</span>
+fetch(url).then(<span class="co">r</span> => <span class="co">r</span>.<span class="cf">json</span>()).then(<span class="co">d</span> => console.<span class="cf">log</span>(<span class="co">d</span>));
+
+<span class="cm">// Versão B</span>
+<span class="ck">const</span> <span class="co">r</span> = <span class="ck">await</span> fetch(url);
+<span class="ck">const</span> <span class="co">d</span> = <span class="ck">await</span> <span class="co">r</span>.<span class="cf">json</span>();
+console.<span class="cf">log</span>(<span class="co">d</span>);`,
+        options:[
+          { letter:'A', text:'Não são equivalentes — a versão B executa em paralelo, a A em sequência' },
+          { letter:'B', text:'Sim, são equivalentes em resultado. A versão B precisa estar dentro de uma função <code>async</code>', correct:true },
+          { letter:'C', text:'Não são equivalentes — <code>await</code> bloqueia toda a thread do browser' },
+          { letter:'D', text:'Sim, são idênticos — <code>await</code> é apenas um atalho de digitação' },
+          { letter:'E', text:'A versão B só funciona em Node.js, não no browser' },
+        ],
+        explanation:'As duas versões produzem o mesmo resultado final. A principal diferença é que <code>await</code> deve estar dentro de uma função <code>async</code>. Importante: <code>await</code> não bloqueia a thread toda — ele pausa apenas a execução daquela função async, permitindo que o resto do JS continue.'
+      },
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════════════
+//  ESTADO
+// ══════════════════════════════════════════════════════════
+let modIdx  = 0;
+let qIdx    = 0;
+let totalXP = 0;
+const MAX_XP = 2000;
+const results = [[], [], [], []];
+let phase = 'quiz';
+let selectedOpt = null; // letra da opção selecionada
+
+// ══════════════════════════════════════════════════════════
+//  TEMA POR MÓDULO
+// ══════════════════════════════════════════════════════════
+function applyTheme(mod) {
+  const r = document.documentElement.style;
+  r.setProperty('--mc',       mod.color);
+  r.setProperty('--mc-glow',  mod.glow);
+  r.setProperty('--mc-bg',    mod.bg);
+  r.setProperty('--mc-bg2',   mod.bg2);
+  r.setProperty('--mc-dot',   mod.color);
+  r.setProperty('--mc-btn',   mod.color);
+  r.setProperty('--mc-accent',mod.color);
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODULE MAP
+// ══════════════════════════════════════════════════════════
+function renderModMap() {
+  document.getElementById('mod-map').innerHTML = MODULES.map((m, i) => {
+    const done   = i < modIdx || (i === modIdx && phase === 'final');
+    const active = i === modIdx && phase === 'quiz';
+    const locked = i > modIdx;
+    const cls    = done ? 'done' : active ? 'active' : '';
+    const sc     = done ? `${results[i].filter(Boolean).length}/5 ✓` : active ? 'EM JOGO' : '—';
+    return `<div class="mod-card ${cls}" style="--mc:${m.color}">
+      <div class="mod-lock">${locked ? '🔒' : ''}</div>
+      <div class="mod-icon">${m.icon}</div>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-score">${sc}</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHIPS
+// ══════════════════════════════════════════════════════════
+function renderChips() {
+  const row = document.getElementById('chip-row');
+  row.innerHTML = '';
+  MODULES.forEach((m, mi) => {
+    if (mi > 0) { const s = document.createElement('div'); s.className = 'chip sep'; row.appendChild(s); }
+    m.questions.forEach((_, qi) => {
+      const gi = mi * 5 + qi;
+      const d  = document.createElement('div');
+      d.className = 'chip'; d.id = `chip-${gi}`; d.textContent = qi + 1;
+      const res = results[mi][qi];
+      if (res === true)  d.classList.add('c');
+      if (res === false) d.classList.add('e');
+      if (mi === modIdx && qi === qIdx && phase === 'quiz') {
+        d.style.borderColor = m.color; d.style.color = m.color;
+      }
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi, qi, ok) {
+  const d = document.getElementById(`chip-${mi*5+qi}`);
+  if (!d) return;
+  d.classList.remove('c','e'); d.classList.add(ok?'c':'e');
+  d.style.borderColor=''; d.style.color='';
+  d.textContent = ok ? '✓' : '✗';
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROGRESS
+// ══════════════════════════════════════════════════════════
+function renderProg() {
+  const mod = MODULES[modIdx] || MODULES[MODULES.length-1];
+  const total = modIdx * 5 + qIdx;
+  document.getElementById('prog-name').textContent = mod.name;
+  document.getElementById('prog-frac').textContent = `${Math.min(total,20)}/20`;
+  document.getElementById('prog-dots').innerHTML = Array.from({length:5},(_,i)=> {
+    const cls = i<qIdx?'done':i===qIdx?'active':'';
+    return `<div class="pdot ${cls}"></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  XP
+// ══════════════════════════════════════════════════════════
+function addXP(v) {
+  totalXP = Math.min(totalXP+v, MAX_XP);
+  document.getElementById('xp-fill').style.width = (totalXP/MAX_XP*100)+'%';
+  document.getElementById('xp-val').textContent   = `${totalXP} / ${MAX_XP}`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  RENDER QUESTION
+// ══════════════════════════════════════════════════════════
+function renderQuestion() {
+  selectedOpt = null;
+  const mod = MODULES[modIdx];
+  const q   = mod.questions[qIdx];
+  applyTheme(mod);
+  renderModMap(); renderChips(); renderProg();
+
+  const codeHtml = q.codeSnippet
+    ? `<div class="code-ctx">${q.codeSnippet}</div>` : '';
+
+  const optsHtml = q.options.map((o,i) => `
+    <div class="opt" data-letter="${o.letter}" onclick="selectOpt('${o.letter}')">
+      <div class="opt-letter">${o.letter}</div>
+      <div class="opt-text">${o.text}</div>
+      <div class="opt-check"></div>
+    </div>`).join('');
+
+  document.getElementById('q-area').innerHTML = `
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-badge">Módulo ${modIdx+1} · Questão ${qIdx+1}/5</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        ${codeHtml}
+        <p class="q-text">${q.text}</p>
+        <div class="options" id="options">${optsHtml}</div>
+        <button class="btn-confirm" id="btn-confirm" onclick="confirmAnswer()" disabled>
+          CONFIRMAR →
+        </button>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advanceQuestion()">
+          ${qIdx < 4 ? 'Próxima →' : 'Finalizar Módulo →'}
+        </button>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  SELECT OPTION
+// ══════════════════════════════════════════════════════════
+function selectOpt(letter) {
+  if (document.getElementById('btn-next').classList.contains('show')) return;
+  selectedOpt = letter;
+  document.querySelectorAll('.opt').forEach(el => {
+    el.classList.toggle('selected', el.dataset.letter === letter);
+  });
+  const btn = document.getElementById('btn-confirm');
+  btn.classList.add('ready');
+  btn.disabled = false;
+}
+
+// ══════════════════════════════════════════════════════════
+//  CONFIRM ANSWER
+// ══════════════════════════════════════════════════════════
+function confirmAnswer() {
+  if (!selectedOpt) return;
+  const mod  = MODULES[modIdx];
+  const q    = mod.questions[qIdx];
+  const correct = q.options.find(o => o.correct).letter;
+  const ok   = selectedOpt === correct;
+
+  results[modIdx][qIdx] = ok;
+  markChip(modIdx, qIdx, ok);
+
+  // Desabilita todas as opções
+  document.querySelectorAll('.opt').forEach(el => {
+    el.classList.add('disabled');
+    const letter = el.dataset.letter;
+    if (letter === correct) {
+      el.classList.add(ok ? 'correct' : 'reveal-correct');
+      el.querySelector('.opt-check').textContent = '✓';
+    } else if (letter === selectedOpt && !ok) {
+      el.classList.add('wrong');
+      el.querySelector('.opt-check').textContent = '✗';
+    }
+  });
+
+  document.getElementById('btn-confirm').disabled = true;
+  document.getElementById('btn-confirm').style.display = 'none';
+
+  const fb = document.getElementById('feedback');
+  const card = document.getElementById('active-card');
+
+  if (ok) {
+    addXP(80);
+    card.classList.add('pop');
+    setTimeout(()=>card.classList.remove('pop'),300);
+    fb.className = 'feedback ok show';
+    fb.innerHTML = `<div class="fb-head">✓ Correto! +80 XP</div>${q.explanation}`;
+  } else {
+    card.classList.add('shake');
+    setTimeout(()=>card.classList.remove('shake'),300);
+    fb.className = 'feedback fail show';
+    fb.innerHTML = `<div class="fb-head">✗ Incorreto — a resposta era ${correct}</div>${q.explanation}`;
+  }
+
+  document.getElementById('btn-next').classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ADVANCE
+// ══════════════════════════════════════════════════════════
+function advanceQuestion() {
+  if (qIdx < 4) { qIdx++; renderQuestion(); }
+  else          { showModComplete(); }
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODULE COMPLETE
+// ══════════════════════════════════════════════════════════
+function showModComplete() {
+  phase = 'mod-complete';
+  document.getElementById('q-area').innerHTML = '';
+  const mod = MODULES[modIdx];
+  const res = results[modIdx];
+  const ok  = res.filter(Boolean).length;
+  const pct = ok/5;
+  applyTheme(mod);
+
+  const mc = document.getElementById('mc-card');
+  mc.style.setProperty('--mc', mod.color);
+  mc.style.setProperty('--mc-glow', mod.glow);
+
+  document.getElementById('mc-stars').textContent  = pct===1?'⭐⭐⭐':pct>=.6?'⭐⭐':'⭐';
+  document.getElementById('mc-title').textContent  = mod.name;
+  document.getElementById('mc-ok').textContent     = ok;
+  document.getElementById('mc-err').textContent    = 5-ok;
+  document.getElementById('mc-xp').textContent     = `+${ok*80}`;
+
+  const msgs = [[1,'Perfeito! Módulo dominado.'],[.8,'Muito bem!'],[.6,'Bom progresso — revise os erros.'],[0,'Continue! Cada erro é aprendizado.']];
+  document.getElementById('mc-msg').textContent = msgs.find(([t])=>pct>=t)[1];
+
+  const isLast = modIdx === MODULES.length-1;
+  document.getElementById('btn-continue').textContent = isLast ? 'VER RESULTADO FINAL →' : 'PRÓXIMO MÓDULO →';
+  document.getElementById('mod-complete').classList.add('show');
+  renderModMap(); renderChips();
+}
+
+function startNextModule() {
+  document.getElementById('mod-complete').classList.remove('show');
+  phase = 'quiz';
+  if (modIdx === MODULES.length-1) { showFinal(); return; }
+  modIdx++; qIdx = 0;
+  renderQuestion();
+}
+
+// ══════════════════════════════════════════════════════════
+//  FINAL
+// ══════════════════════════════════════════════════════════
+function showFinal() {
+  phase = 'final';
+  document.getElementById('q-area').innerHTML = '';
+  const totalOk = results.flat().filter(Boolean).length;
+  document.getElementById('f-num').textContent = totalOk;
+
+  const pct = totalOk/20;
+  const subs = [[1,'🏆 Pontuação perfeita!'],[.85,'🔥 Excelente!'],[.7,'👍 Muito bom!'],[.5,'💪 Bom início!'],[0,'📚 Continue praticando!']];
+  document.getElementById('final-sub').textContent = subs.find(([t])=>pct>=t)[1];
+
+  document.getElementById('final-grid').innerHTML = MODULES.map((m,i)=>{
+    const res = results[i];
+    const ok  = res.filter(Boolean).length;
+    const color = ok===5?'var(--ok)':ok>=3?m.color:'var(--err)';
+    const chips = res.map(r=>`<div class="fc-chip ${r?'c':'e'}">${r?'✓':'✗'}</div>`).join('');
+    return `<div class="final-cell">
+      <div class="fc-mod" style="color:${m.color}">${m.icon} ${m.name}</div>
+      <div class="fc-score" style="color:${color}">${ok}/5</div>
+      <div class="fc-chips">${chips}</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('final-screen').classList.add('show');
+  modIdx = MODULES.length;
+  renderModMap(); renderChips();
+
+  const progName = document.getElementById('prog-name');
+  progName.textContent = 'Completo';
+  document.getElementById('prog-frac').textContent = '20/20';
+  document.getElementById('prog-dots').innerHTML = Array.from({length:5},()=>'<div class="pdot done"></div>').join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  RESTART
+// ══════════════════════════════════════════════════════════
+function restart() {
+  modIdx=0; qIdx=0; totalXP=0; phase='quiz'; selectedOpt=null;
+  results.forEach(r=>r.length=0);
+  document.getElementById('xp-fill').style.width='0%';
+  document.getElementById('xp-val').textContent='0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  applyTheme(MODULES[0]);
+  renderQuestion();
+}
+
+// INIT
+applyTheme(MODULES[0]);
+renderQuestion();
+</script>
+</body>
+</html>

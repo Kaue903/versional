@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Quiz — Treino Completo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:       #0e0e12;
+      --surface:  #16161d;
+      --surface2: #1e1e28;
+      --border:   #2a2a3a;
+      --border2:  #383850;
+
+      --m1: #f72585;   /* DOM — rosa */
+      --m2: #f4a261;   /* Estilos — laranja */
+      --m3: #06d6a0;   /* localStorage — verde */
+      --m4: #4cc9f0;   /* Fetch — azul */
+
+      --ok:    #39ff14;
+      --err:   #ff3a5c;
+      --gold:  #ffd60a;
+      --text:  #eeeef5;
+      --muted: #6b6b88;
+      --dim:   #3a3a52;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Barlow', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ── NOISE TEXTURE ── */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events:none; z-index:0; opacity:.4;
+    }
+
+    .app { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:24px 20px 80px; }
+
+    /* ══════════════════════════════════
+       HEADER
+    ══════════════════════════════════ */
+    .hdr {
+      display:flex; align-items:center; justify-content:space-between;
+      gap:16px; margin-bottom:28px; flex-wrap:wrap;
+    }
+
+    .hdr-left { display:flex; flex-direction:column; gap:4px; }
+
+    .game-label {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:10px; font-weight:700; letter-spacing:4px;
+      text-transform:uppercase; color:var(--muted);
+    }
+
+    .game-title {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:clamp(1.8rem,5vw,2.8rem);
+      font-weight:900; line-height:1; letter-spacing:-1px;
+    }
+
+    .game-title span { color:var(--gold); }
+
+    /* XP BAR */
+    .xp-wrap { min-width:220px; flex:1; max-width:340px; }
+
+    .xp-top {
+      display:flex; justify-content:space-between; align-items:baseline;
+      font-size:11px; margin-bottom:6px;
+    }
+
+    .xp-label {
+      font-family:'Barlow Condensed',sans-serif;
+      font-weight:700; letter-spacing:2px; color:var(--gold);
+      font-size:12px;
+    }
+
+    .xp-val { font-family:'Fira Code',monospace; font-size:11px; color:var(--muted); }
+
+    .xp-track {
+      height:8px; background:var(--dim); border-radius:4px; overflow:hidden;
+      border:1px solid var(--border);
+    }
+
+    .xp-fill {
+      height:100%; border-radius:4px;
+      background: linear-gradient(90deg, var(--gold), #ff9f00);
+      box-shadow: 0 0 10px rgba(255,214,10,.4);
+      transition: width .6s cubic-bezier(.4,0,.2,1);
+      width:0%;
+    }
+
+    /* ══════════════════════════════════
+       MODULE MAP
+    ══════════════════════════════════ */
+    .module-map {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+      margin-bottom:28px;
+    }
+
+    .mod-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:10px; padding:12px 10px; text-align:center;
+      position:relative; overflow:hidden; transition:border-color .3s;
+    }
+
+    .mod-card::before {
+      content:''; position:absolute; inset:0;
+      background:var(--mc,transparent); opacity:.06;
+      transition:opacity .3s;
+    }
+
+    .mod-card.active  { border-color:var(--mc); }
+    .mod-card.active::before { opacity:.12; }
+    .mod-card.done    { border-color:rgba(57,255,20,.3); }
+    .mod-card.done::before { background:var(--ok); opacity:.07; }
+
+    .mod-icon {
+      font-size:1.4rem; margin-bottom:4px;
+      filter:grayscale(1); opacity:.4; transition:all .3s;
+    }
+
+    .mod-card.active .mod-icon, .mod-card.done .mod-icon {
+      filter:grayscale(0); opacity:1;
+    }
+
+    .mod-name {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:11px; font-weight:700; letter-spacing:1px;
+      text-transform:uppercase; color:var(--muted); transition:color .3s;
+    }
+
+    .mod-card.active .mod-name { color:var(--mc); }
+    .mod-card.done  .mod-name  { color:var(--ok); }
+
+    .mod-score {
+      font-family:'Fira Code',monospace; font-size:10px;
+      color:var(--dim); margin-top:3px; transition:color .3s;
+    }
+
+    .mod-card.done .mod-score { color:var(--ok); }
+
+    .mod-lock {
+      position:absolute; top:6px; right:8px;
+      font-size:10px; color:var(--dim);
+    }
+
+    .mod-card.active .mod-lock,
+    .mod-card.done  .mod-lock { display:none; }
+
+    /* ══════════════════════════════════
+       PROGRESS STRIP
+    ══════════════════════════════════ */
+    .prog-strip {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:10px; padding:14px 18px; margin-bottom:24px;
+      display:flex; align-items:center; gap:16px;
+    }
+
+    .prog-module-name {
+      font-family:'Barlow Condensed',sans-serif;
+      font-weight:800; font-size:1rem; letter-spacing:1px;
+      min-width:110px; color:var(--mc-text, var(--text));
+      transition:color .4s;
+    }
+
+    .prog-dots { display:flex; gap:6px; flex:1; }
+
+    .pdot {
+      flex:1; height:5px; border-radius:3px;
+      background:var(--dim); transition:background .4s, box-shadow .4s;
+    }
+
+    .pdot.done   { background:var(--mc-dot, var(--ok)); }
+    .pdot.active { background:var(--mc-dot, var(--ok)); box-shadow:0 0 6px var(--mc-dot, var(--ok)); opacity:.5; }
+
+    .prog-frac {
+      font-family:'Fira Code',monospace; font-size:12px;
+      color:var(--muted); white-space:nowrap;
+    }
+
+    /* ══════════════════════════════════
+       CHIP ROW
+    ══════════════════════════════════ */
+    .chip-row { display:flex; gap:6px; margin-bottom:22px; flex-wrap:wrap; }
+
+    .chip {
+      width:32px; height:32px; border-radius:6px;
+      border:1px solid var(--border);
+      background:var(--surface);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:13px; font-weight:700; color:var(--muted);
+      transition:all .3s;
+    }
+
+    .chip.c { background:rgba(57,255,20,.1); border-color:rgba(57,255,20,.4); color:var(--ok); }
+    .chip.e { background:rgba(255,58,92,.1);  border-color:rgba(255,58,92,.4);  color:var(--err); }
+    .chip.sep {
+      width:1px; height:32px; border-radius:0;
+      border:none; border-left:1px solid var(--border2);
+      background:transparent; pointer-events:none;
+    }
+
+    /* ══════════════════════════════════
+       QUESTION CARD
+    ══════════════════════════════════ */
+    .q-card {
+      background:var(--surface); border:1px solid var(--border);
+      border-radius:14px; overflow:hidden;
+      animation: cardIn .3s cubic-bezier(.4,0,.2,1);
+      transition:border-color .3s;
+    }
+
+    @keyframes cardIn {
+      from { opacity:0; transform:translateY(14px) scale(.985); }
+      to   { opacity:1; transform:translateY(0)    scale(1); }
+    }
+
+    .q-card.c-ok  { border-color:rgba(57,255,20,.35); }
+    .q-card.c-err { border-color:rgba(255,58,92,.35); }
+
+    .q-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 20px; border-bottom:1px solid var(--border);
+      background:var(--surface2);
+    }
+
+    .q-badge {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:10px; font-weight:700; letter-spacing:2px;
+      text-transform:uppercase; color:var(--muted);
+    }
+
+    .q-method {
+      font-family:'Fira Code',monospace; font-size:12px;
+      padding:3px 12px; border-radius:20px;
+      border:1px solid var(--mc-border, var(--border2));
+      background:var(--mc-bg, rgba(255,255,255,.04));
+      color:var(--mc-text2, var(--text));
+      transition:all .3s;
+    }
+
+    .q-body { padding:22px 24px; }
+
+    .q-title {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:1.45rem; font-weight:800; margin-bottom:14px; line-height:1.2;
+    }
+
+    /* code context */
+    .code-ctx {
+      background:#0b0b10; border:1px solid var(--border);
+      border-left:3px solid var(--mc-accent, var(--border2));
+      border-radius:6px; padding:14px 18px; margin-bottom:18px;
+      font-family:'Fira Code',monospace; font-size:12.5px;
+      line-height:1.9; transition:border-color .3s;
+      white-space: pre;
+    }
+
+    .ck { color:#c792ea; }
+    .cf { color:#82aaff; }
+    .cs { color:#c3e88d; }
+    .co { color:#ffcb6b; }
+    .cm { color:#3d3d55; font-style:italic; }
+    .ct { color:#89ddff; }
+    .blank { color:rgba(255,255,255,.2); font-style:italic; }
+
+    .q-text {
+      font-size:.95rem; font-weight:300; line-height:1.7;
+      color:rgba(238,238,245,.7); margin-bottom:18px;
+    }
+
+    .q-text strong { color:var(--text); font-weight:500; }
+    .q-text code {
+      font-family:'Fira Code',monospace; font-size:12px;
+      background:rgba(255,255,255,.07); padding:1px 7px; border-radius:4px;
+      color:var(--co, #ffcb6b);
+    }
+
+    /* ── INPUT ── */
+    .input-row { display:flex; gap:10px; margin-bottom:10px; }
+
+    .input-shell {
+      flex:1; display:flex; align-items:center; gap:8px;
+      background:#0b0b10; border:1.5px solid var(--border2);
+      border-radius:8px; padding:0 16px;
+      transition:border-color .25s, box-shadow .25s;
+    }
+
+    .input-shell:focus-within {
+      border-color:var(--mc-accent, #6b6baa);
+      box-shadow:0 0 0 3px var(--mc-glow, rgba(107,107,170,.15));
+    }
+
+    .inp-pre {
+      font-family:'Fira Code',monospace; font-size:12px;
+      color:var(--muted); white-space:nowrap;
+    }
+
+    .ans-inp {
+      flex:1; background:transparent; border:none; outline:none;
+      font-family:'Fira Code',monospace; font-size:13px;
+      color:var(--text); padding:12px 0;
+      caret-color:var(--mc-accent, var(--text));
+    }
+
+    .ans-inp::placeholder { color:var(--dim); }
+    .ans-inp:disabled     { opacity:.4; }
+
+    .btn-go {
+      padding:12px 22px; border:none; border-radius:8px;
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:15px; font-weight:800; letter-spacing:1px;
+      cursor:pointer; white-space:nowrap;
+      background:var(--mc-btn, #3a3a5a);
+      color:var(--mc-btn-text, var(--text));
+      transition:opacity .2s, transform .1s, box-shadow .2s;
+      box-shadow:0 3px 14px var(--mc-glow, transparent);
+    }
+
+    .btn-go:hover  { opacity:.85; }
+    .btn-go:active { transform:scale(.96); }
+
+    /* ── FEEDBACK ── */
+    .feedback {
+      display:none; padding:14px 18px; border-radius:8px;
+      font-size:.88rem; line-height:1.7; margin-top:10px;
+      animation:cardIn .25s ease;
+    }
+
+    .feedback.show { display:block; }
+
+    .feedback.ok {
+      background:rgba(57,255,20,.06); border:1px solid rgba(57,255,20,.2); color:#b8ffc2;
+    }
+
+    .feedback.ok   .fb-head { color:var(--ok);  font-weight:700; margin-bottom:3px; font-size:.93rem; }
+    .feedback.fail .fb-head { color:var(--err); font-weight:700; margin-bottom:3px; font-size:.93rem; }
+
+    .feedback.fail {
+      background:rgba(255,58,92,.06); border:1px solid rgba(255,58,92,.2); color:#ffb8c2;
+    }
+
+    .feedback code {
+      font-family:'Fira Code',monospace; font-size:12px;
+      background:rgba(255,255,255,.08); padding:1px 6px; border-radius:4px;
+      color:var(--co, #ffcb6b);
+    }
+
+    /* ── HINT ── */
+    .btn-hint {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      font-family:'Barlow',sans-serif; font-size:12px; font-weight:500;
+      padding:5px 14px; border-radius:6px; cursor:pointer; margin-top:8px;
+      transition:border-color .2s, color .2s; display:inline-block;
+    }
+
+    .btn-hint:hover { border-color:var(--gold); color:var(--gold); }
+
+    .hint-box {
+      display:none; margin-top:8px; padding:12px 16px;
+      background:rgba(255,214,10,.05); border:1px solid rgba(255,214,10,.2);
+      border-radius:8px; font-size:.86rem; color:#ffe566; line-height:1.6;
+    }
+
+    .hint-box.show { display:block; animation:cardIn .2s ease; }
+
+    /* ── NEXT ── */
+    .btn-next {
+      display:none; margin-top:12px; background:transparent;
+      border:1.5px solid var(--border2); color:var(--text);
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:15px; font-weight:700; letter-spacing:1px;
+      padding:10px 28px; border-radius:8px; cursor:pointer;
+      transition:background .2s, border-color .2s, color .2s;
+    }
+
+    .btn-next:hover { background:var(--surface2); border-color:var(--text); }
+    .btn-next.show  { display:inline-block; animation:cardIn .3s ease; }
+
+    /* ══════════════════════════════════
+       MODULE COMPLETE SCREEN
+    ══════════════════════════════════ */
+    #mod-complete { display:none; animation:cardIn .4s ease; }
+    #mod-complete.show { display:block; }
+
+    .mc-card {
+      background:var(--surface); border:2px solid var(--mc-accent, var(--border));
+      border-radius:18px; padding:44px 36px; text-align:center;
+      position:relative; overflow:hidden;
+      box-shadow:0 0 60px var(--mc-glow, transparent);
+    }
+
+    .mc-card::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at 50% 0%, var(--mc-bg2, transparent) 0%, transparent 60%);
+    }
+
+    .mc-inner { position:relative; }
+
+    .mc-stars { font-size:2rem; letter-spacing:8px; margin-bottom:16px; }
+
+    .mc-tag {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:10px; font-weight:700; letter-spacing:4px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:8px;
+    }
+
+    .mc-title {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:2.4rem; font-weight:900; line-height:1;
+      margin-bottom:6px; color:var(--mc-accent, var(--text));
+      text-shadow:0 0 30px var(--mc-glow, transparent);
+    }
+
+    .mc-score-row {
+      display:flex; align-items:center; justify-content:center;
+      gap:24px; margin:24px 0; flex-wrap:wrap;
+    }
+
+    .mc-stat {
+      display:flex; flex-direction:column; align-items:center; gap:4px;
+    }
+
+    .mc-num {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:2.8rem; font-weight:900; line-height:1;
+    }
+
+    .mc-num.ok  { color:var(--ok); }
+    .mc-num.err { color:var(--err); }
+    .mc-num.xp  { color:var(--gold); }
+
+    .mc-lbl { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+
+    .mc-msg {
+      font-size:.95rem; color:var(--muted); margin-bottom:28px;
+      font-style:italic; line-height:1.5;
+    }
+
+    .btn-continue {
+      padding:14px 40px; border:none; border-radius:10px;
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:17px; font-weight:800; letter-spacing:2px;
+      cursor:pointer; text-transform:uppercase;
+      background:var(--mc-accent, #3a3a5a);
+      color:#000; transition:opacity .2s, transform .1s;
+      box-shadow:0 4px 24px var(--mc-glow, transparent);
+    }
+
+    .btn-continue:hover  { opacity:.85; }
+    .btn-continue:active { transform:scale(.97); }
+
+    /* ══════════════════════════════════
+       FINAL SCREEN
+    ══════════════════════════════════ */
+    #final-screen { display:none; animation:cardIn .5s ease; }
+    #final-screen.show { display:block; }
+
+    .final-wrap {
+      background:var(--surface); border:1px solid var(--border2);
+      border-radius:20px; overflow:hidden;
+    }
+
+    .final-banner {
+      background: linear-gradient(135deg, #1a0030, #001a30, #001a14);
+      padding:40px 36px 32px; text-align:center;
+      border-bottom:1px solid var(--border2);
+      position:relative; overflow:hidden;
+    }
+
+    .final-banner::before {
+      content:''; position:absolute; inset:0;
+      background: radial-gradient(ellipse at 50% 100%, rgba(255,214,10,.06), transparent 70%);
+    }
+
+    .final-trophy { font-size:3.5rem; margin-bottom:12px; position:relative; }
+
+    .final-title {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:clamp(1.8rem,5vw,3rem); font-weight:900; line-height:1;
+      margin-bottom:4px; position:relative;
+    }
+
+    .final-sub { color:var(--muted); font-size:.9rem; position:relative; }
+
+    .final-big-score {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:clamp(4rem,14vw,7rem); font-weight:900; line-height:1;
+      color:var(--gold); text-shadow:0 0 40px rgba(255,214,10,.5);
+      position:relative;
+    }
+
+    .final-denom { font-size:2.5rem; opacity:.4; }
+
+    .final-grid {
+      display:grid; grid-template-columns:repeat(2,1fr); gap:1px;
+      background:var(--border); border-bottom:1px solid var(--border);
+    }
+
+    .final-cell {
+      background:var(--surface); padding:20px 24px;
+      display:flex; flex-direction:column; gap:4px;
+    }
+
+    .fc-mod {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:11px; font-weight:700; letter-spacing:2px;
+      text-transform:uppercase;
+    }
+
+    .fc-score {
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:1.6rem; font-weight:900; line-height:1;
+    }
+
+    .fc-chips { display:flex; gap:4px; margin-top:4px; }
+
+    .fc-chip {
+      width:18px; height:18px; border-radius:3px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:9px; font-weight:700;
+    }
+
+    .fc-chip.c { background:rgba(57,255,20,.15); color:var(--ok); }
+    .fc-chip.e { background:rgba(255,58,92,.15);  color:var(--err); }
+
+    .final-actions { padding:28px 36px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+    .btn-restart {
+      padding:13px 32px; border-radius:10px; cursor:pointer;
+      font-family:'Barlow Condensed',sans-serif;
+      font-size:16px; font-weight:800; letter-spacing:1px;
+      text-transform:uppercase;
+      background:var(--gold); color:#000; border:none;
+      transition:opacity .2s;
+    }
+
+    .btn-restart:hover { opacity:.85; }
+
+    /* ══════════════════════════════════
+       UTILITIES
+    ══════════════════════════════════ */
+    @keyframes shake {
+      0%,100% { transform:translateX(0); }
+      20%,60%  { transform:translateX(-5px); }
+      40%,80%  { transform:translateX(5px); }
+    }
+
+    @keyframes pop {
+      0%   { transform:scale(1); }
+      40%  { transform:scale(1.15); }
+      100% { transform:scale(1); }
+    }
+
+    .shake { animation:shake .3s ease; }
+    .pop   { animation:pop   .3s ease; }
+
+    @media (max-width:560px) {
+      .module-map { grid-template-columns:repeat(2,1fr); }
+      .final-grid { grid-template-columns:1fr; }
+      .hdr { flex-direction:column; }
+      .xp-wrap { max-width:100%; width:100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ══ HEADER ══ -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="game-label">JavaScript · Treino Completo</div>
+      <div class="game-title">JS <span>QUIZ</span></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top">
+        <span class="xp-label">⚡ XP</span>
+        <span class="xp-val" id="xp-val">0 / 2000</span>
+      </div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <!-- ══ MODULE MAP ══ -->
+  <div class="module-map" id="mod-map"></div>
+
+  <!-- ══ PROGRESS STRIP ══ -->
+  <div class="prog-strip" id="prog-strip">
+    <div class="prog-module-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-frac" id="prog-frac">0/20</div>
+  </div>
+
+  <!-- ══ CHIPS ══ -->
+  <div class="chip-row" id="chip-row"></div>
+
+  <!-- ══ QUESTION AREA ══ -->
+  <div id="q-area"></div>
+
+  <!-- ══ MODULE COMPLETE ══ -->
+  <div id="mod-complete">
+    <div class="mc-card" id="mc-card">
+      <div class="mc-inner">
+        <div class="mc-stars" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">Módulo Completo</div>
+        <div class="mc-title" id="mc-title">—</div>
+        <div class="mc-score-row">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Corretas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+        <button class="btn-continue" id="btn-continue" onclick="startNextModule()">
+          PRÓXIMO MÓDULO →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ FINAL SCREEN ══ -->
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-banner">
+        <div class="final-trophy">🏆</div>
+        <div class="final-title">Treino Concluído!</div>
+        <div class="final-sub" id="final-sub">Resultado final</div>
+        <div class="final-big-score">
+          <span id="f-num">0</span><span class="final-denom">/20</span>
+        </div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions">
+        <button class="btn-restart" onclick="restart()">↩ Reiniciar do Zero</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /app -->
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  DADOS — 4 MÓDULOS × 5 DESAFIOS
+// ══════════════════════════════════════════════════════════
+const MODULES = [
+  {
+    id: 'dom',
+    name: 'Seletores DOM',
+    icon: '🎯',
+    color:  '#f72585',
+    glow:   'rgba(247,37,133,.25)',
+    bg:     'rgba(247,37,133,.08)',
+    bg2:    'rgba(247,37,133,.12)',
+    questions: [
+      {
+        method: 'getElementById',
+        title: 'Buscar por ID',
+        code: null,
+        question: 'Selecione o elemento com <code>id="titulo"</code> usando o método mais rápido para IDs.',
+        prefix: 'document.',
+        placeholder: "getElementById('titulo')",
+        answers: ["getElementById('titulo')", 'getElementById("titulo")'],
+        hint: 'getElementById recebe o ID como string — sem o # do CSS.',
+        explanation: '<code>getElementById(\'titulo\')</code> — busca diretamente pelo ID, o método mais performático. Retorna o elemento ou <code>null</code>.'
+      },
+      {
+        method: 'querySelector',
+        title: 'querySelector por ID',
+        code: null,
+        question: 'Use <strong>querySelector</strong> para selecionar o elemento com <code>id="btn"</code>. Lembre do seletor CSS.',
+        prefix: 'document.',
+        placeholder: "querySelector('#btn')",
+        answers: ["querySelector('#btn')", 'querySelector("#btn")'],
+        hint: 'No querySelector, IDs usam # — igual ao CSS: querySelector("#btn")',
+        explanation: '<code>querySelector(\'#btn\')</code> — o <code>#</code> indica ID, exatamente como no CSS. Mais flexível que getElementById pois aceita qualquer seletor.'
+      },
+      {
+        method: 'querySelectorAll',
+        title: 'Todos por classe',
+        code: `<span class="cm">// HTML:</span>
+<span class="ct">&lt;li</span> <span class="co">class</span>=<span class="cs">"item"</span><span class="ct">&gt;</span>A<span class="ct">&lt;/li&gt;</span>
+<span class="ct">&lt;li</span> <span class="co">class</span>=<span class="cs">"item"</span><span class="ct">&gt;</span>B<span class="ct">&lt;/li&gt;</span>`,
+        question: 'Selecione <strong>todos</strong> os elementos com a classe <code>"item"</code>. Retorna uma NodeList.',
+        prefix: 'document.',
+        placeholder: "querySelectorAll('.item')",
+        answers: ["querySelectorAll('.item')", 'querySelectorAll(".item")'],
+        hint: 'Classes usam ponto. querySelectorAll retorna TODOS os elementos correspondentes.',
+        explanation: '<code>querySelectorAll(\'.item\')</code> — retorna uma <strong>NodeList estática</strong> com todos os elementos da classe. Use <code>.forEach()</code> para iterar.'
+      },
+      {
+        method: 'getElementsByClassName',
+        title: 'Por nome de classe',
+        code: null,
+        question: 'Selecione todos os elementos com a classe <code>"card"</code> usando <strong>getElementsByClassName</strong>.',
+        prefix: 'document.',
+        placeholder: "getElementsByClassName('card')",
+        answers: ["getElementsByClassName('card')", 'getElementsByClassName("card")'],
+        hint: 'Atenção: aqui não usa ponto — só o nome da classe como string.',
+        explanation: '<code>getElementsByClassName(\'card\')</code> — sem o ponto! Retorna uma <strong>HTMLCollection viva</strong> que se atualiza automaticamente se o DOM mudar.'
+      },
+      {
+        method: 'getElementsByTagName',
+        title: 'Por tag HTML',
+        code: null,
+        question: 'Selecione todas as tags <code>&lt;p&gt;</code> da página usando <strong>getElementsByTagName</strong>.',
+        prefix: 'document.',
+        placeholder: "getElementsByTagName('p')",
+        answers: ["getElementsByTagName('p')", 'getElementsByTagName("p")'],
+        hint: 'Passe só o nome da tag como string: getElementsByTagName("p")',
+        explanation: '<code>getElementsByTagName(\'p\')</code> — retorna uma HTMLCollection com todos os <code>&lt;p&gt;</code>. A diferença para querySelectorAll: a coleção é <strong>viva</strong>.'
+      },
+    ]
+  },
+
+  {
+    id: 'styles',
+    name: 'Alterar Estilos',
+    icon: '🎨',
+    color:  '#f4a261',
+    glow:   'rgba(244,162,97,.25)',
+    bg:     'rgba(244,162,97,.08)',
+    bg2:    'rgba(244,162,97,.12)',
+    questions: [
+      {
+        method: 'style.backgroundColor',
+        title: 'Cor de fundo',
+        code: `<span class="ck">const</span> <span class="co">caixa</span> = document.<span class="cf">querySelector</span>(<span class="cs">'#caixa'</span>);`,
+        question: 'Mude a cor de fundo do elemento para <code>lightcoral</code>. Atenção ao camelCase!',
+        prefix: 'caixa.',
+        placeholder: "style.backgroundColor = 'lightcoral'",
+        answers: ["style.backgroundColor = 'lightcoral'", "style.backgroundColor = \"lightcoral\""],
+        hint: 'No CSS é background-color (hífen), mas no JS vira camelCase: backgroundColor.',
+        explanation: '<code>style.backgroundColor</code> — no JS, propriedades CSS com hífen viram camelCase. Sempre passe o valor como <strong>string</strong>.'
+      },
+      {
+        method: 'style.color',
+        title: 'Cor do texto',
+        code: `<span class="ck">const</span> <span class="co">titulo</span> = document.<span class="cf">querySelector</span>(<span class="cs">'h1'</span>);`,
+        question: 'Altere a cor do texto do <code>h1</code> para <code>steelblue</code>.',
+        prefix: 'titulo.',
+        placeholder: "style.color = 'steelblue'",
+        answers: ["style.color = 'steelblue'", "style.color = \"steelblue\""],
+        hint: 'A propriedade é style.color — exatamente igual ao nome no CSS.',
+        explanation: '<code>style.color</code> altera a cor do texto. Mesma propriedade CSS <code>color</code>, mas acessada pelo objeto <code>style</code> do elemento.'
+      },
+      {
+        method: 'style.fontSize',
+        title: 'Tamanho da fonte',
+        code: `<span class="ck">const</span> <span class="co">paragrafo</span> = document.<span class="cf">querySelector</span>(<span class="cs">'p'</span>);`,
+        question: 'Aumente o tamanho da fonte do parágrafo para <code>24px</code>. A unidade é obrigatória!',
+        prefix: 'paragrafo.',
+        placeholder: "style.fontSize = '24px'",
+        answers: ["style.fontSize = '24px'", "style.fontSize = \"24px\""],
+        hint: 'No CSS é font-size, em JS é fontSize. E sempre inclua a unidade: \'24px\', nunca só o número.',
+        explanation: '<code>style.fontSize = \'24px\'</code> — o valor precisa ser <strong>string com unidade</strong>. Só o número <code>24</code> não funciona.'
+      },
+      {
+        method: 'classList.toggle',
+        title: 'Toggle de classe',
+        code: `<span class="ck">const</span> <span class="co">btn</span> = document.<span class="cf">querySelector</span>(<span class="cs">'#btn'</span>);
+<span class="cm">// classe "ativo" deve entrar/sair a cada clique</span>`,
+        question: 'Ao clicar, a classe <code>"ativo"</code> deve ser <strong>adicionada</strong> se não existir e <strong>removida</strong> se existir.',
+        prefix: 'btn.',
+        placeholder: "classList.toggle('ativo')",
+        answers: ["classList.toggle('ativo')", "classList.toggle(\"ativo\")"],
+        hint: 'toggle faz os dois numa linha: se tem → remove, se não tem → adiciona.',
+        explanation: '<code>classList.toggle(\'ativo\')</code> — substitui um <code>if/else</code> com contains + add/remove. Muito mais limpo!'
+      },
+      {
+        method: 'classList.remove',
+        title: 'Remover classe',
+        code: `<span class="ct">&lt;div</span> <span class="co">id</span>=<span class="cs">"alerta"</span> <span class="co">class</span>=<span class="cs">"box erro"</span><span class="ct">&gt;&lt;/div&gt;</span>`,
+        question: 'A div tem as classes <code>"box"</code> e <code>"erro"</code>. Remova apenas a classe <code>"erro"</code>.',
+        prefix: 'alerta.',
+        placeholder: "classList.remove('erro')",
+        answers: ["classList.remove('erro')", "classList.remove(\"erro\")"],
+        hint: 'classList.remove() remove só aquela classe, sem mexer nas outras.',
+        explanation: '<code>classList.remove(\'erro\')</code> — remove sem afetar as demais classes. O oposto é <code>classList.add()</code>. Nunca use o <code>.</code> no nome da classe aqui.'
+      },
+    ]
+  },
+
+  {
+    id: 'storage',
+    name: 'localStorage',
+    icon: '💾',
+    color:  '#06d6a0',
+    glow:   'rgba(6,214,160,.25)',
+    bg:     'rgba(6,214,160,.08)',
+    bg2:    'rgba(6,214,160,.12)',
+    questions: [
+      {
+        method: 'localStorage.setItem',
+        title: 'Salvar valor',
+        code: null,
+        question: 'Salve o nome <code>"Ana"</code> com a chave <code>"usuario"</code> no localStorage.',
+        prefix: 'localStorage.',
+        placeholder: "setItem('usuario', 'Ana')",
+        answers: ["setItem('usuario', 'Ana')", 'setItem("usuario", "Ana")', "setItem('usuario',\"Ana\")", "setItem(\"usuario\",'Ana')"],
+        hint: 'setItem recebe DOIS argumentos: a chave e o valor, ambos como strings.',
+        explanation: '<code>setItem(\'chave\', \'valor\')</code> — salva no navegador e persiste até ser removido manualmente, mesmo após fechar o browser.'
+      },
+      {
+        method: 'localStorage.getItem',
+        title: 'Recuperar valor',
+        code: `<span class="ck">const</span> <span class="co">usuario</span> = localStorage.<span class="blank">___</span>(<span class="cs">'usuario'</span>);`,
+        question: 'Complete a linha para <strong>recuperar</strong> o valor salvo com a chave <code>"usuario"</code>.',
+        prefix: 'localStorage.',
+        placeholder: "getItem('usuario')",
+        answers: ["getItem('usuario')", 'getItem("usuario")'],
+        hint: 'getItem recebe apenas UM argumento: a chave que você quer buscar.',
+        explanation: '<code>getItem(\'chave\')</code> — retorna o valor sempre como <strong>string</strong>. Se a chave não existir, retorna <code>null</code>.'
+      },
+      {
+        method: 'JSON.stringify',
+        title: 'Salvar objeto',
+        code: `<span class="ck">const</span> <span class="co">config</span> = { tema: <span class="cs">'dark'</span>, tamanho: <span class="cs">16</span> };
+localStorage.<span class="cf">setItem</span>(<span class="cs">'config'</span>, <span class="blank">___</span>(config));`,
+        question: 'localStorage só guarda strings. Complete com a função que converte o objeto em string JSON.',
+        prefix: '',
+        placeholder: "JSON.stringify(config)",
+        answers: ['JSON.stringify(config)'],
+        hint: 'JSON.stringify() transforma qualquer objeto ou array em string JSON.',
+        explanation: '<code>JSON.stringify(config)</code> — sem isso o localStorage salvaria <code>"[object Object]"</code>. É o caminho objeto → string.'
+      },
+      {
+        method: 'JSON.parse',
+        title: 'Ler objeto salvo',
+        code: `<span class="ck">const</span> <span class="co">str</span> = localStorage.<span class="cf">getItem</span>(<span class="cs">'config'</span>);
+<span class="ck">const</span> <span class="co">config</span> = <span class="blank">___</span>(str);`,
+        question: '<code>getItem</code> retornou uma string JSON. Complete para convertê-la de volta em <strong>objeto</strong>.',
+        prefix: '',
+        placeholder: "JSON.parse(str)",
+        answers: ['JSON.parse(str)'],
+        hint: 'JSON.parse() faz o caminho inverso: string JSON → objeto JavaScript.',
+        explanation: '<code>JSON.parse(str)</code> — converte a string <code>\'{"tema":"dark"}\' </code>de volta para o objeto. É o par obrigatório do <code>JSON.stringify()</code>.'
+      },
+      {
+        method: 'localStorage.removeItem',
+        title: 'Remover item',
+        code: `<span class="cm">// Usuário fez logout — apagar sessão salva</span>`,
+        question: 'Ao fazer logout, delete o item salvo com a chave <code>"sessao"</code> do localStorage.',
+        prefix: 'localStorage.',
+        placeholder: "removeItem('sessao')",
+        answers: ["removeItem('sessao')", 'removeItem("sessao")'],
+        hint: 'removeItem recebe um argumento: a chave a remover. Para limpar tudo: localStorage.clear().',
+        explanation: '<code>removeItem(\'sessao\')</code> — apaga só aquela chave. <code>localStorage.clear()</code> limparia tudo. Use com cuidado!'
+      },
+    ]
+  },
+
+  {
+    id: 'fetch',
+    name: 'Fetch & Async',
+    icon: '🌐',
+    color:  '#4cc9f0',
+    glow:   'rgba(76,201,240,.25)',
+    bg:     'rgba(76,201,240,.08)',
+    bg2:    'rgba(76,201,240,.12)',
+    questions: [
+      {
+        method: 'fetch(url)',
+        title: 'Iniciar requisição',
+        code: `<span class="cm">// API pública de exemplo</span>
+<span class="ck">const</span> <span class="co">url</span> = <span class="cs">'https://jsonplaceholder.typicode.com/todos/1'</span>;`,
+        question: 'Qual função JavaScript usamos para fazer uma requisição HTTP para a <code>url</code> acima?',
+        prefix: '',
+        placeholder: "fetch(url)",
+        answers: ['fetch(url)', "fetch('https://jsonplaceholder.typicode.com/todos/1')", 'fetch("https://jsonplaceholder.typicode.com/todos/1")'],
+        hint: 'fetch() recebe a URL como argumento e retorna uma Promise.',
+        explanation: '<code>fetch(url)</code> — inicia a requisição e retorna uma <strong>Promise</strong>. Pense como uma "promessa de resposta" que você processa com <code>.then()</code>.'
+      },
+      {
+        method: '.then(res => res.json())',
+        title: 'Converter para JSON',
+        code: `fetch(url)
+  .<span class="blank">___</span>(<span class="co">res</span> => <span class="co">res</span>.<span class="cf">json</span>())`,
+        question: 'Após o fetch, a resposta é um objeto <code>Response</code> bruto. Qual método Promise você encadeia para convertê-la em JSON?',
+        prefix: '',
+        placeholder: "then(res => res.json())",
+        answers: ['then(res => res.json())', 'then(response => response.json())', 'then(r => r.json())'],
+        hint: '.then() recebe uma função. Dentro, chame .json() na resposta para converter.',
+        explanation: '<code>.then(res => res.json())</code> — <code>.json()</code> também retorna uma Promise. Por isso encadeamos outro <code>.then()</code> para usar os dados de fato.'
+      },
+      {
+        method: '.then(data => {...})',
+        title: 'Usar os dados',
+        code: `fetch(url)
+  .then(<span class="co">res</span> => <span class="co">res</span>.<span class="cf">json</span>())
+  .<span class="blank">___</span>(<span class="co">data</span> => {
+    console.<span class="cf">log</span>(<span class="co">data</span>.<span class="co">title</span>);
+  })`,
+        question: 'Após converter para JSON, encadeie mais um método para <strong>acessar os dados</strong> no parâmetro <code>data</code>.',
+        prefix: '',
+        placeholder: "then(data => { ... })",
+        answers: ['then(data => { ... })', 'then(data => {})', 'then(data => { })', 'then((data) => { })'],
+        hint: 'É outro .then() — desta vez o parâmetro já é o objeto JSON pronto para usar.',
+        explanation: 'O segundo <code>.then(data => { })</code> recebe o objeto JSON convertido. Aqui você acessa <code>data.title</code>, <code>data.id</code>, etc.'
+      },
+      {
+        method: '.catch(err => {...})',
+        title: 'Capturar erros',
+        code: `fetch(url)
+  .then(<span class="co">res</span> => <span class="co">res</span>.<span class="cf">json</span>())
+  .then(<span class="co">data</span> => { <span class="cm">/* uso */</span> })
+  .<span class="blank">___</span>(<span class="co">err</span> => {
+    console.<span class="cf">log</span>(<span class="cs">'Erro:'</span>, <span class="co">err</span>);
+  })`,
+        question: 'Se a rede falhar ou a URL for inválida, qual método vai ao final da cadeia para <strong>capturar o erro</strong>?',
+        prefix: '',
+        placeholder: "catch(err => { ... })",
+        answers: ['catch(err => { ... })', 'catch(err => {})', 'catch(err => { })', 'catch((err) => { })'],
+        hint: '.catch() é o try/catch das Promises — captura qualquer falha da cadeia.',
+        explanation: '<code>.catch(err => { })</code> — captura falhas de qualquer <code>.then()</code> anterior. Sempre coloque no final. Sem ele, erros passam silenciosamente.'
+      },
+      {
+        method: 'await',
+        title: 'async / await',
+        code: `<span class="ck">async</span> <span class="ck">function</span> <span class="cf">buscar</span>() {
+  <span class="ck">const</span> <span class="co">res</span>  = <span class="blank">___</span> fetch(url);
+  <span class="ck">const</span> <span class="co">data</span> = <span class="ck">await</span> <span class="co">res</span>.<span class="cf">json</span>();
+  console.<span class="cf">log</span>(<span class="co">data</span>);
+}`,
+        question: 'Na sintaxe <code>async/await</code>, qual palavra-chave vai na lacuna para <strong>pausar e aguardar</strong> o resultado do fetch?',
+        prefix: '',
+        placeholder: "await",
+        answers: ['await'],
+        hint: 'await pausa a execução da função async até a Promise resolver.',
+        explanation: '<code>await</code> — pausa a função <code>async</code> até a Promise resolver. Resultado equivalente ao <code>.then()</code>, mas o código fica linear e mais legível.'
+      },
+    ]
+  },
+];
+
+// ══════════════════════════════════════════════════════════
+//  ESTADO GLOBAL
+// ══════════════════════════════════════════════════════════
+let modIdx   = 0;   // módulo atual (0-3)
+let qIdx     = 0;   // pergunta dentro do módulo (0-4)
+let totalXP  = 0;
+const MAX_XP = 2000;
+
+// resultado por módulo: array de true/false por questão
+const results = [[], [], [], []];
+
+// fase: 'quiz' | 'mod-complete' | 'final'
+let phase = 'quiz';
+
+// ══════════════════════════════════════════════════════════
+//  HELPERS DE CORES POR MÓDULO
+// ══════════════════════════════════════════════════════════
+function applyModuleTheme(mod) {
+  const r = document.querySelector(':root');
+  r.style.setProperty('--mc',        mod.color);
+  r.style.setProperty('--mc-accent', mod.color);
+  r.style.setProperty('--mc-glow',   mod.glow);
+  r.style.setProperty('--mc-bg',     mod.bg);
+  r.style.setProperty('--mc-bg2',    mod.bg2);
+  r.style.setProperty('--mc-border', `1px solid ${mod.color}44`);
+  r.style.setProperty('--mc-text',   mod.color);
+  r.style.setProperty('--mc-text2',  mod.color);
+  r.style.setProperty('--mc-dot',    mod.color);
+  r.style.setProperty('--mc-btn',    mod.color);
+  r.style.setProperty('--mc-btn-text','#000');
+  r.style.setProperty('--co',        mod.color);
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODULE MAP
+// ══════════════════════════════════════════════════════════
+function renderModMap() {
+  const wrap = document.getElementById('mod-map');
+  wrap.innerHTML = MODULES.map((m, i) => {
+    const done   = i < modIdx;
+    const active = i === modIdx && phase === 'quiz';
+    const locked = i > modIdx;
+    const cls    = done ? 'done' : active ? 'active' : '';
+    const modOk  = done ? results[i].filter(Boolean).length : '';
+    return `
+      <div class="mod-card ${cls}" style="--mc:${m.color}">
+        <div class="mod-lock">${locked ? '🔒' : ''}</div>
+        <div class="mod-icon">${m.icon}</div>
+        <div class="mod-name">${m.name}</div>
+        <div class="mod-score">${done ? `${modOk}/5 ✓` : active ? 'EM JOGO' : '—'}</div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHIP ROW (todos os 20 chips com separadores)
+// ══════════════════════════════════════════════════════════
+function renderChips() {
+  const row = document.getElementById('chip-row');
+  row.innerHTML = '';
+  MODULES.forEach((m, mi) => {
+    if (mi > 0) {
+      const sep = document.createElement('div');
+      sep.className = 'chip sep';
+      row.appendChild(sep);
+    }
+    m.questions.forEach((_, qi) => {
+      const globalIdx = mi * 5 + qi;
+      const d = document.createElement('div');
+      d.className = 'chip';
+      d.id = `chip-${globalIdx}`;
+      d.textContent = qi + 1;
+
+      // resultados já registrados
+      const res = results[mi][qi];
+      if (res === true)  d.classList.add('c');
+      if (res === false) d.classList.add('e');
+
+      // destaque no chip ativo
+      if (mi === modIdx && qi === qIdx && phase === 'quiz') {
+        d.style.borderColor = m.color;
+        d.style.color = m.color;
+      }
+
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi, qi, ok) {
+  const d = document.getElementById(`chip-${mi*5+qi}`);
+  if (!d) return;
+  d.classList.remove('c','e');
+  d.classList.add(ok ? 'c' : 'e');
+  d.style.borderColor = '';
+  d.style.color = '';
+  d.textContent = ok ? '✓' : '✗';
+}
+
+// ══════════════════════════════════════════════════════════
+//  PROGRESS STRIP
+// ══════════════════════════════════════════════════════════
+function renderProgStrip() {
+  const mod = MODULES[modIdx];
+  const totalDone = modIdx * 5 + qIdx;
+
+  document.getElementById('prog-name').textContent = mod.name;
+  document.getElementById('prog-frac').textContent = `${totalDone}/20`;
+
+  const dots = document.getElementById('prog-dots');
+  dots.innerHTML = mod.questions.map((_, i) => {
+    const cls = i < qIdx ? 'done' : i === qIdx ? 'active' : '';
+    return `<div class="pdot ${cls}"></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  XP
+// ══════════════════════════════════════════════════════════
+function addXP(amount) {
+  totalXP = Math.min(totalXP + amount, MAX_XP);
+  const pct = (totalXP / MAX_XP) * 100;
+  document.getElementById('xp-fill').style.width = pct + '%';
+  document.getElementById('xp-val').textContent = `${totalXP} / ${MAX_XP}`;
+}
+
+// ══════════════════════════════════════════════════════════
+//  RENDER QUESTÃO
+// ══════════════════════════════════════════════════════════
+function renderQuestion() {
+  const mod = MODULES[modIdx];
+  const q   = mod.questions[qIdx];
+  applyModuleTheme(mod);
+  renderModMap();
+  renderChips();
+  renderProgStrip();
+
+  const codeHtml = q.code
+    ? `<div class="code-ctx">${q.code}</div>`
+    : '';
+
+  const pfxHtml = q.prefix
+    ? `<span class="inp-pre">${q.prefix}</span>`
+    : `<span class="inp-pre">→</span>`;
+
+  document.getElementById('q-area').innerHTML = `
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-badge">Módulo ${modIdx+1} · Questão ${qIdx+1}/5</span>
+        <span class="q-method">${q.method}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        ${codeHtml}
+        <p class="q-text">${q.question}</p>
+        <div class="input-row">
+          <div class="input-shell">
+            ${pfxHtml}
+            <input class="ans-inp" id="ans" type="text"
+              placeholder="${q.placeholder}"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+          </div>
+          <button class="btn-go" onclick="checkAnswer()">ENTER ↵</button>
+        </div>
+        <button class="btn-hint" onclick="toggleHint()">💡 Dica</button>
+        <div class="hint-box" id="hint-box">${q.hint}</div>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advanceQuestion()">
+          ${qIdx < 4 ? 'Próxima →' : 'Finalizar Módulo →'}
+        </button>
+      </div>
+    </div>`;
+
+  const inp = document.getElementById('ans');
+  inp.focus();
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') checkAnswer(); });
+}
+
+// ══════════════════════════════════════════════════════════
+//  CHECK ANSWER
+// ══════════════════════════════════════════════════════════
+function checkAnswer() {
+  const inp = document.getElementById('ans');
+  const fb  = document.getElementById('feedback');
+  const btn = document.getElementById('btn-next');
+  if (btn.classList.contains('show')) return;
+
+  const val = inp.value.trim();
+  if (!val) return;
+
+  const mod = MODULES[modIdx];
+  const q   = mod.questions[qIdx];
+  const ok  = q.answers.includes(val);
+
+  results[modIdx][qIdx] = ok;
+  markChip(modIdx, qIdx, ok);
+
+  const card = document.getElementById('active-card');
+
+  if (ok) {
+    addXP(80);
+    card.classList.add('c-ok');
+    card.classList.add('pop');
+    setTimeout(() => card.classList.remove('pop'), 300);
+    fb.className = 'feedback ok show';
+    fb.innerHTML = `<div class="fb-head">✓ Correto! +80 XP</div>${q.explanation}`;
+  } else {
+    card.classList.add('c-err','shake');
+    setTimeout(() => card.classList.remove('shake'), 300);
+    const correct = q.prefix ? `${q.prefix}${q.answers[0]}` : q.answers[0];
+    fb.className = 'feedback fail show';
+    fb.innerHTML = `<div class="fb-head">✗ Resposta incorreta</div>Correto: <code>${correct}</code><br><br>${q.explanation}`;
+  }
+
+  inp.disabled = true;
+  btn.classList.add('show');
+}
+
+// ══════════════════════════════════════════════════════════
+//  HINT
+// ══════════════════════════════════════════════════════════
+function toggleHint() {
+  document.getElementById('hint-box').classList.toggle('show');
+}
+
+// ══════════════════════════════════════════════════════════
+//  ADVANCE
+// ══════════════════════════════════════════════════════════
+function advanceQuestion() {
+  if (qIdx < 4) {
+    qIdx++;
+    document.getElementById('q-area').innerHTML = '';
+    renderQuestion();
+  } else {
+    showModComplete();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODULE COMPLETE
+// ══════════════════════════════════════════════════════════
+function showModComplete() {
+  phase = 'mod-complete';
+  document.getElementById('q-area').innerHTML = '';
+
+  const mod  = MODULES[modIdx];
+  const res  = results[modIdx];
+  const ok   = res.filter(Boolean).length;
+  const err  = 5 - ok;
+  const xpEarned = ok * 80;
+  const pct  = ok / 5;
+
+  applyModuleTheme(mod);
+
+  const mc = document.getElementById('mc-card');
+  mc.style.setProperty('--mc-accent', mod.color);
+  mc.style.setProperty('--mc-glow',   mod.glow);
+  mc.style.setProperty('--mc-bg2',    mod.bg2);
+
+  document.getElementById('mc-stars').textContent =
+    pct === 1 ? '⭐⭐⭐' : pct >= .6 ? '⭐⭐' : '⭐';
+  document.getElementById('mc-title').textContent = mod.name;
+  document.getElementById('mc-ok').textContent    = ok;
+  document.getElementById('mc-err').textContent   = err;
+  document.getElementById('mc-xp').textContent    = `+${xpEarned}`;
+
+  const msgs = [
+    [1,   'Perfeito! Módulo dominado.'],
+    [.8,  'Muito bem! Só um deslize.'],
+    [.6,  'Bom progresso! Revise os erros.'],
+    [0,   'Continue praticando — cada erro é aprendizado.'],
+  ];
+
+  document.getElementById('mc-msg').textContent = msgs.find(([t]) => pct >= t)[1];
+
+  const isLast = modIdx === MODULES.length - 1;
+  const btnCont = document.getElementById('btn-continue');
+  btnCont.textContent = isLast ? 'VER RESULTADO FINAL →' : 'PRÓXIMO MÓDULO →';
+
+  document.getElementById('mod-complete').classList.add('show');
+  renderModMap();
+  renderChips();
+}
+
+function startNextModule() {
+  document.getElementById('mod-complete').classList.remove('show');
+  phase = 'quiz';
+
+  if (modIdx === MODULES.length - 1) {
+    showFinal();
+    return;
+  }
+
+  modIdx++;
+  qIdx = 0;
+  renderQuestion();
+}
+
+// ══════════════════════════════════════════════════════════
+//  FINAL
+// ══════════════════════════════════════════════════════════
+function showFinal() {
+  phase = 'final';
+  document.getElementById('q-area').innerHTML = '';
+
+  const totalOk = results.flat().filter(Boolean).length;
+  document.getElementById('f-num').textContent = totalOk;
+
+  const pct = totalOk / 20;
+  const subs = [
+    [1,   '🏆 Pontuação perfeita! JavaScript dominado.'],
+    [.85, '🔥 Excelente! Quase perfeito.'],
+    [.7,  '👍 Muito bom! Revise os tópicos com erro.'],
+    [.5,  '💪 Bom começo! Continue praticando.'],
+    [0,   '📚 Não desanime — releia os materiais e tente de novo!'],
+  ];
+  document.getElementById('final-sub').textContent = subs.find(([t]) => pct >= t)[1];
+
+  // grade por módulo
+  const grid = document.getElementById('final-grid');
+  grid.innerHTML = MODULES.map((m, i) => {
+    const res  = results[i];
+    const ok   = res.filter(Boolean).length;
+    const pctM = ok / 5;
+    const color = pctM === 1 ? 'var(--ok)' : pctM >= .6 ? m.color : 'var(--err)';
+    const chipsHtml = res.map(r =>
+      `<div class="fc-chip ${r?'c':'e'}">${r?'✓':'✗'}</div>`
+    ).join('');
+    return `
+      <div class="final-cell">
+        <div class="fc-mod" style="color:${m.color}">${m.icon} ${m.name}</div>
+        <div class="fc-score" style="color:${color}">${ok}/5</div>
+        <div class="fc-chips">${chipsHtml}</div>
+      </div>`;
+  }).join('');
+
+  document.getElementById('final-screen').classList.add('show');
+
+  // Atualiza mapa de módulos (todos como done)
+  modIdx = MODULES.length;
+  renderModMap();
+  renderChips();
+  renderProgStrip();
+}
+
+// ══════════════════════════════════════════════════════════
+//  RESTART
+// ══════════════════════════════════════════════════════════
+function restart() {
+  modIdx  = 0;
+  qIdx    = 0;
+  totalXP = 0;
+  phase   = 'quiz';
+  results.forEach(r => r.length = 0);
+  document.getElementById('xp-fill').style.width = '0%';
+  document.getElementById('xp-val').textContent = '0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  applyModuleTheme(MODULES[0]);
+  renderQuestion();
+}
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+applyModuleTheme(MODULES[0]);
+renderQuestion();
+</script>
+</body>
+</html>

@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alterando estilos com o DOM</title>
+    <!-- CSS Interno -->
+     <style>
+        #minhaDiv {
+            width: 200px;
+            height: 200px;
+            background-color: yellowgreen;
+            margin-top: 20px;
+        }
+        
+     </style>
+</head>
+<body>
+    <!-- Botão para mudar a cor da div -->
+    <button id="meuBotao">Mudar cor</button>
+
+    <!-- Div que tera sua cor de fundo alterada via DOM no JS -->
+     <div id="minhaDiv"></div>
+
+    <!-- JS Interno -->
+     <script>
+        // Seleção botão e Div usando DOMno JS
+        const botao = document.querySelector('#meuBotao')
+        const div = document.querySelector('#minhaDiv')
+
+        // Adição de evento (Clique) por monitorar
+        // botao.addEventListener('click', () => {
+        //     // Verificar cor atual e troca enyre (lightblue e lightcoral)
+
+        //     // Estrutura Tradicional
+        //     if (div.style.backgroundColor === 'yellowgreen') {
+        //         div.style.backgroundColor= 'lightcoryyyal'; ;
+        //     } else {
+        //         div.style.backgroundColor = 'yellowgreen';
+        //     }
+
+            // Estrutura condicional (Ternário) "Moderno mais sintaxe mais complexa"
+                    botao.addEventListener('click', () => {
+
+            // Estrutura Tradicional
+            div.style.backgroundColor = div.style.backgroundColor === 'yellowgreen' ? 'black' : 'yellowgreen';
+
+            
+
+
+        })
+
+     </script>
+</body>
+</html>

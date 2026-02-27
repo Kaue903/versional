@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contador de Número</title>
+</head>
+<body>
+
+     <!-- CSS INTERNO -->
+    <style>
+        #numero {
+            position: absolute;
+            top: 300px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 48px;
+            font-weight: bold;
+
+        }
+
+        .body {
+            transition: backgrouncolor 0.3ms;
+            background-color: lightblue;
+        }
+            #contador {
+            position: absolute;
+            top: 420px;
+            left: 46.5%;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 80px;
+            background-color: rgb(174, 32, 32);
+            color: white;
+        }
+
+        .titulo {
+            text-align: center;
+            margin-top: 40px;
+            color: black;
+            transition: color 0.5s ease;
+            font-style: italic;
+            font-size: 40px;
+            text-shadow: 12px 12px 14px rgba(0, 0, 0, 0.5);
+        }
+    </style>
+
+<body>
+
+    <!-- Declaração das Classes -->
+    <h1 class="titulo">Contador de cliques</h1> 
+    <button id="contador"> Contador</button>
+    <div id="numero">0</div>
+
+
+    <!-- Lógica para mudança do fundo, de acordo com o número (Par e impar) -->
+    <script>
+        const button = document.getElementById('contador');
+        const numero = document.getElementById('numero');
+        let contador = 0;
+
+        button.addEventListener('click', () => {
+            contador++;
+            numero.textContent = contador;
+            if (contador % 2 === 0) {
+                document.body.style.backgroundColor = 'lightblue';
+            } else {
+                document.body.style.backgroundColor = 'lightcoral';
+            }
+        });
+
+        
+
+    </script>
+</body>
+</html>

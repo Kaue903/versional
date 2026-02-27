@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alterando branco e preto com o DOM</title>
+
+    <link rel="stylesheet" href="style.css">
+
+<head>
+<body>
+    <h1 class="titulo">Desafio: Alterar branco e preto com o DOM</h1>
+
+    <button id="meuBotao">Modo Escuro</button>
+
+    <script>
+        const botao = document.querySelector('#meuBotao');
+
+        // Alternar modo escuro (aplica classe no body)
+        botao.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+        });
+
+    </script>
+</body>
+</html>
