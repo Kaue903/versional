@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lista de Tarefas</title>
+
   <style>
     /* Estilo para tarefas completas */
     .completed {
@@ -11,8 +12,10 @@
       color: gray; /* Muda a cor para cinza */
     }
   </style>
+
 </head>
 <body>
+
   <!-- Campo de entrada para nova tarefa -->
   <input type="text" id="taskInput" placeholder="Nova tarefa">
 
@@ -22,33 +25,46 @@
   <!-- Lista onde as tarefas serão exibidas -->
   <ul id="taskList"></ul>
 
-  <!-- Script JavaScript embutido na página -->
+  <!-- Script JavaScript -->
   <script>
+
     // Seleciona os elementos do DOM
+    const taskInput = document.querySelector('#taskInput');  
+    const addButton = document.querySelector('#addButton');  
+    const taskList = document.querySelector('#taskList');    
 
-    // 1ª Digitação (Aqui)
+    // getElementById --- chama apenas o ID, não precisa do #, e é mais rápido que querySelector
+    // querySelector --- pode chamar por ID, classe, tag, etc.
 
-    // Adiciona um evento de clique ao botão "Adicionar"
-    // addButton.addEventListener('click', () => {
-      // Obtém o texto da tarefa e remove espaços em branco no início e no fim
-      
+    // Evento de clique no botão
+    addButton.addEventListener('click', () => {
 
-      // Verifica se o texto não está vazio
-      
-        // Cria um novo item de lista (<li>)
-        
-           // Define o texto da tarefa
+      // Obtém o texto da tarefa
+      const taskText = taskInput.value.trim(); //value.trim() remove espaços em branco no início e no final do texto
 
-        // Adiciona um evento de clique ao item da lista para marcar/desmarcar como concluído
-        // li.addEventListener('click', () => {
-            // Alterna a classe 'completed'
-       
+      // Verifica se o campo não está vazio
+      if (taskText !== '') {
 
-        // Adiciona o item à lista de tarefas
-       
+        // Cria um novo item da lista
+        const li = document.createElement('li');
 
-        // Limpa o campo de entrada
-        
+        // Coloca o texto digitado dentro da li
+        li.textContent = taskText;
+
+        // Evento de clique para marcar como concluída
+        li.addEventListener('click', () => {
+          li.classList.toggle('completed');
+        });
+
+        // Adiciona a tarefa na lista
+        taskList.appendChild(li);
+
+        // Limpa o campo de texto
+        taskInput.value = '';
+
+      }
+
+    });
 
   </script>
 </body>

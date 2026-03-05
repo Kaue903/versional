@@ -19,6 +19,7 @@ body {
   margin-top: 30px; /* Espaçamento superior */
   overflow: hidden; /* Esconde o conteúdo que ultrapassa o container */
   padding: 0 50px; /* Espaço para os botões de navegação */
+  
 }
 
 /* Slides do carrossel */
@@ -57,6 +58,7 @@ body {
   cursor: pointer; /* Muda o cursor para pointer */
   font-size: 1.5rem; /* Tamanho do ícone */
   z-index: 1000; /* Garante que os botões fiquem acima das imagens */
+  box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3); /* Adiciona uma sombra para destacar os botões */
 }
 
 /* Botão "Anterior" */

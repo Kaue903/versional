@@ -9,6 +9,7 @@
 /* Define a fonte padrão para o corpo da página */
 body {
   font-family: Arial, sans-serif;
+  overflow-x: hidden;
 }
 
 /* Estilo da barra de navegação */
@@ -21,11 +22,13 @@ nav {
 }
 
 /* Estilo do ícone do menu hambúrguer */
-/* .menu-icon {
-
-  2ª Digitação (Aqui) 
-
-} */
+.menu-icon {
+  font-size: 1.5rem; /* Tamanho do ícone */
+  color: white; /* Cor do ícone */
+  cursor: pointer; /* Cursor de ponteiro ao passar o mouse */
+  display: none; /* Esconde o ícone por padrão (aparecerá em telas pequenas) */
+  transition: color 2.3s; /* Transição suave para a cor do ícone */
+}
 
 /* Estilo da lista de navegação */
 .nav-list {
@@ -33,8 +36,7 @@ nav {
   list-style: none; /* Remove os marcadores de lista */
 
 /* Move a lista para o lado direito */
-  /* margin-left: auto;  */
-}
+  margin-left: auto; }
 
 /* Estilo dos itens da lista */
 .nav-list li {
@@ -48,17 +50,43 @@ nav {
   font-size: 1rem; /* Tamanho da fonte */
 }
 
+/* Criar uma animação */
+@keyframes abrirMenu {
+  from {
+    max-height: 0; /* Começa com altura zero */
+    opacity: 0; /* Começa invisível */
+  }
+  to {
+    max-height: 300px; /* Altura máxima para mostrar o menu */
+    opacity: 1; /* Torna o menu visível */}
+}
+
+/* Animação de deslizar da esquerda para a direita */
+@keyframes deslizarMenu {
+  from {transform: translateX(-100%);} 
+    to {transform: translateX(0);} /* Começa fora da tela à esquerda */
+}
+
+/* Aparecer com zoom */
+@keyframes zoom {
+  from {transform: scaleY(0); transform-origin: top;} /* Começa com escala zero e origem no topo */
+    to {transform: scaleY(1); transform-origin: top;} /* Começa com escala zero e cresce para o tamanho normal */
+} 
+
 /* Estilos para telas pequenas (max-width: 768px) */
 @media (max-width: 768px) {
-  /* .menu-icon {
-
-    3ª Digitação (Aqui)
-    
+  .menu-icon {
+    display: block; /* Exibe o ícone do menu hambúrguer em telas pequenas */
   }
-
   .nav-list {
-
-  } */
+    display: none; /* Esconde a lista de navegação por padrão em telas pequenas */
+    flex-direction: column; /* Exibe os itens em coluna quando a lista for exibida */
+    width: 100%; /* Ocupa toda a largura da tela */
+    position: absolute; /* Posiciona a lista de forma absoluta */
+    top: 60px; /* Posiciona a lista abaixo da barra de navegação */
+    background-color: #333; /* Cor de fundo da lista */
+    left: 0; /* Alinha a lista à esquerda da tela */
+  } 
 
   .nav-list li {
     margin: 1rem 0; /* Espaçamento entre os itens */
@@ -68,5 +96,6 @@ nav {
   /* Classe ativada via JavaScript para exibir a lista */
   .nav-list.active {
     display: flex; /* Exibe a lista quando a classe "active" é adicionada */
+    animation: deslizarMenu 2.3s ease forwards; /* Aplica a animação de abertura do menu */
   }
 }

@@ -43,23 +43,23 @@
     const form = document.querySelector('#signupForm');
 
     // Adiciona um evento de submit ao formulário (event.preventDefault)
-
-    // 1ª Digitação (Aqui)
-
+    form.addEventListener('submit', (event) => {
       // Impede o envio padrão do formulário
-      
-
+      event.preventDefault (); 
       // O evento padrão de um formulário é enviar seus dados ao servidor e recarregar a página. O uso de event.preventDefault() bloqueia esse comportamento, permitindo validar os campos e controlar como os dados serão enviados.
 
       // Obtém os valores dos campos e remove espaços em branco
-
+      const name = form.name.value.trim(); // Obtém o valor do campo "name" e remove espaços em branco
+      const email = form.email.value.trim(); // Obtém o valor do campo "email"
+      const password = form.password.value; // Obtém o valor do campo "password"
 
       // Variável para controlar se o formulário é válido
+      let isValid = true; // Assume que o formulário é válido inicialmente
       
 
       // Validação do nome
-      if (name === '') {
-        document.querySelector('#nameError').textContent = 'Nome é obrigatório.';
+      if (name === '' || name.length < 3 || /\d/.test(name)) { // Verifica se o nome está vazio ou tem menos de 3 caracteres
+        document.querySelector('#nameError').textContent = 'Nome é obrigatório e deve ter pelo menos 3 caracteres e não conter números.';
         isValid = false; // Formulário inválido
       } else {
         document.querySelector('#nameError').textContent = ''; // Limpa a mensagem de erro
@@ -82,6 +82,12 @@
       }
 
       // Se o formulário for válido, exibe uma mensagem e reseta os campos
+      if (isValid) {
+        alert('Cadastro realizado com sucesso!');
+        form.reset(); // Limpa os campos do formulário
+      }
+    });
+
 
 
   </script>
