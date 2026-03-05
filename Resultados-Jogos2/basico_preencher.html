@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Base — Completar Código</title>
+  <link href="https://fonts.googleapis.com/css2?family=Lexend+Exa:wght@700;800;900&family=Lexend:wght@300;400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #f0f0f0;
+      --surface: #e8e8e8;
+      --surface2:#dcdcdc;
+      --card:    #ffffff;
+      --border:  #cccccc;
+      --border2: #b8b8b8;
+      --ink:     #111111;
+      --muted:   #777777;
+      --dim:     #aaaaaa;
+
+      --n1: #ff2d6b;   /* rosa neon  — var/let/const */
+      --n2: #00e5ff;   /* ciano neon — funções */
+      --n3: #aaff00;   /* verde neon — arrays */
+      --n4: #ff9500;   /* âmbar neon — tipos */
+
+      --ok:  #00c853;
+      --err: #ff1744;
+      --gold:#ff9500;
+
+      --mc:      #ff2d6b;
+      --mc-glow: rgba(255,45,107,.18);
+      --mc-dot:  #ff2d6b;
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family:'Lexend',sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      min-height:100vh;
+      overflow-x:hidden;
+    }
+
+    /* diagonal stripe texture */
+    body::before {
+      content:'';
+      position:fixed; inset:0;
+      background-image: repeating-linear-gradient(
+        -45deg,
+        transparent,
+        transparent 20px,
+        rgba(0,0,0,.018) 20px,
+        rgba(0,0,0,.018) 21px
+      );
+      pointer-events:none; z-index:0;
+    }
+
+    .app { position:relative; z-index:1; max-width:780px; margin:0 auto; padding:28px 20px 80px; }
+
+    /* ── HEADER ── */
+    .hdr { display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:32px; flex-wrap:wrap; }
+    .hdr-left { display:flex; flex-direction:column; gap:2px; }
+    .game-label {
+      font-family:'Fira Code',monospace; font-size:10px; font-weight:400;
+      letter-spacing:3px; text-transform:uppercase; color:var(--muted);
+    }
+    .game-title {
+      font-family:'Lexend Exa',sans-serif;
+      font-size:clamp(1.8rem,5vw,2.8rem);
+      font-weight:900; line-height:1; letter-spacing:-2px; color:var(--ink);
+    }
+    .game-title span {
+      color:transparent;
+      -webkit-text-stroke:2px var(--mc);
+      text-shadow: 0 0 20px var(--mc-glow);
+    }
+
+    /* XP */
+    .xp-wrap { min-width:220px; flex:1; max-width:320px; }
+    .xp-top  { display:flex; justify-content:space-between; font-size:11px; margin-bottom:7px; }
+    .xp-label {
+      font-family:'Lexend Exa',sans-serif; font-size:11px; font-weight:700;
+      letter-spacing:2px; color:var(--mc);
+      text-shadow:0 0 10px var(--mc-glow);
+    }
+    .xp-val { font-family:'Fira Code',monospace; font-size:11px; color:var(--muted); }
+    .xp-track {
+      height:6px; background:var(--surface2); border-radius:3px;
+      border:1px solid var(--border); overflow:hidden;
+    }
+    .xp-fill {
+      height:100%; border-radius:3px;
+      background:linear-gradient(90deg,var(--mc),var(--n4));
+      box-shadow:0 0 8px var(--mc-glow);
+      transition:width .6s cubic-bezier(.4,0,.2,1); width:0%;
+    }
+
+    /* ── MODULE MAP ── */
+    .module-map {
+      display:grid; grid-template-columns:repeat(4,1fr); gap:10px;
+      margin-bottom:28px;
+    }
+    .mod-card {
+      background:var(--card); border:2px solid var(--border);
+      border-radius:10px; padding:12px 10px; text-align:center;
+      position:relative; overflow:hidden;
+      transition:border-color .3s, box-shadow .3s;
+    }
+    .mod-card.active {
+      border-color:var(--mc);
+      box-shadow:0 0 16px var(--mc-glow), inset 0 0 20px rgba(255,45,107,.04);
+    }
+    .mod-card.done  { border-color:var(--ok); }
+    .mod-card::after {
+      content:''; position:absolute; top:0; left:0; right:0; height:3px;
+      background:var(--mc); opacity:0; transition:opacity .3s;
+    }
+    .mod-card.active::after { opacity:1; box-shadow:0 0 8px var(--mc); }
+    .mod-card.done::after  { background:var(--ok); opacity:1; }
+    .mod-icon { font-size:1.4rem; margin-bottom:4px; filter:grayscale(1); opacity:.35; transition:all .3s; }
+    .mod-card.active .mod-icon,.mod-card.done .mod-icon { filter:grayscale(0); opacity:1; }
+    .mod-name {
+      font-family:'Lexend Exa',sans-serif; font-size:10px; font-weight:700;
+      letter-spacing:.5px; text-transform:uppercase; color:var(--muted); transition:color .3s;
+    }
+    .mod-card.active .mod-name { color:var(--mc); text-shadow:0 0 8px var(--mc-glow); }
+    .mod-card.done  .mod-name  { color:var(--ok); }
+    .mod-score { font-family:'Fira Code',monospace; font-size:10px; color:var(--dim); margin-top:3px; }
+    .mod-card.done .mod-score { color:var(--ok); }
+    .mod-lock { position:absolute; top:6px; right:8px; font-size:10px; color:var(--dim); }
+    .mod-card.active .mod-lock,.mod-card.done .mod-lock { display:none; }
+
+    /* ── PROGRESS STRIP ── */
+    .prog-strip {
+      background:var(--card); border:1px solid var(--border);
+      border-radius:10px; padding:14px 20px; margin-bottom:24px;
+      display:flex; align-items:center; gap:16px;
+      box-shadow:2px 2px 0 var(--border);
+    }
+    .prog-name {
+      font-family:'Lexend Exa',sans-serif; font-weight:700; font-size:.9rem;
+      min-width:130px; color:var(--mc);
+      text-shadow:0 0 10px var(--mc-glow);
+    }
+    .prog-dots { display:flex; gap:6px; flex:1; }
+    .pdot { flex:1; height:5px; border-radius:3px; background:var(--surface2); transition:all .4s; }
+    .pdot.done   { background:var(--mc-dot); box-shadow:0 0 4px var(--mc-glow); }
+    .pdot.active { background:var(--mc-dot); opacity:.5; box-shadow:0 0 6px var(--mc-glow); }
+    .prog-frac { font-family:'Fira Code',monospace; font-size:12px; color:var(--muted); white-space:nowrap; }
+
+    /* ── CHIPS ── */
+    .chip-row { display:flex; gap:6px; margin-bottom:22px; flex-wrap:wrap; }
+    .chip {
+      width:32px; height:32px; border-radius:6px;
+      border:1.5px solid var(--border); background:var(--card);
+      display:flex; align-items:center; justify-content:center;
+      font-family:'Lexend Exa',sans-serif; font-size:12px; font-weight:700;
+      color:var(--muted); transition:all .3s;
+      box-shadow:1px 1px 0 var(--border);
+    }
+    .chip.c { background:#e8fff0; border-color:var(--ok); color:var(--ok); box-shadow:0 0 6px rgba(0,200,83,.2); }
+    .chip.e { background:#fff0f2; border-color:var(--err); color:var(--err); }
+    .chip.sep { width:1px; height:32px; border-radius:0; border:none; border-left:2px dashed var(--border); background:transparent; pointer-events:none; box-shadow:none; }
+
+    /* ── QUESTION CARD ── */
+    .q-card {
+      background:var(--card);
+      border:2px solid var(--border);
+      border-radius:14px; overflow:hidden;
+      animation:cardIn .3s cubic-bezier(.4,0,.2,1);
+      transition:border-color .3s, box-shadow .3s;
+      box-shadow:4px 4px 0 var(--border);
+    }
+    @keyframes cardIn { from{opacity:0;transform:translateY(14px) scale(.985)} to{opacity:1;transform:translateY(0) scale(1)} }
+    .q-card.c-ok  { border-color:var(--ok); box-shadow:4px 4px 0 rgba(0,200,83,.3); }
+    .q-card.c-err { border-color:var(--err); box-shadow:4px 4px 0 rgba(255,23,68,.2); }
+
+    .q-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 22px; border-bottom:2px solid var(--border);
+      background:var(--surface);
+    }
+    .q-badge {
+      font-family:'Fira Code',monospace; font-size:10px; letter-spacing:2px;
+      text-transform:uppercase; color:var(--muted);
+    }
+    .q-method {
+      font-family:'Fira Code',monospace; font-size:12px;
+      padding:3px 14px; border-radius:20px;
+      border:1.5px solid var(--mc);
+      color:var(--mc); background:rgba(255,45,107,.06);
+      text-shadow:0 0 8px var(--mc-glow);
+      transition:all .3s;
+    }
+    .q-body { padding:24px 22px; }
+    .q-title {
+      font-family:'Lexend Exa',sans-serif; font-size:1.3rem;
+      font-weight:700; margin-bottom:14px; line-height:1.2; color:var(--ink);
+    }
+
+    /* code block */
+    .code-ctx {
+      background:#1a1a1a; color:#e8e8e8;
+      border:1.5px solid #333;
+      border-left:4px solid var(--mc);
+      border-radius:8px; padding:16px 18px; margin-bottom:18px;
+      font-family:'Fira Code',monospace; font-size:13px; line-height:1.9;
+      white-space:pre; overflow-x:auto;
+      box-shadow:3px 3px 0 #333;
+      transition:border-color .3s;
+    }
+    .ck{color:#c792ea}.cf{color:#82aaff}.cs{color:#c3e88d}.co{color:#ffcb6b}.cm{color:#546e7a;font-style:italic}.ct{color:#89ddff}
+
+    .q-text {
+      font-size:.95rem; font-weight:300; line-height:1.75;
+      color:#444; margin-bottom:18px;
+    }
+    .q-text strong { color:var(--ink); font-weight:600; }
+    .q-text code {
+      font-family:'Fira Code',monospace; font-size:12px;
+      background:rgba(255,45,107,.08); padding:1px 7px; border-radius:4px;
+      color:var(--mc); border:1px solid rgba(255,45,107,.2);
+    }
+
+    /* ── INPUT ── */
+    .input-row { display:flex; gap:10px; margin-bottom:10px; }
+    .input-shell {
+      flex:1; display:flex; align-items:center; gap:8px;
+      background:#1a1a1a; border:1.5px solid #444;
+      border-radius:8px; padding:0 16px;
+      transition:border-color .25s, box-shadow .25s;
+    }
+    .input-shell:focus-within {
+      border-color:var(--mc);
+      box-shadow:0 0 0 3px var(--mc-glow), 0 0 12px var(--mc-glow);
+    }
+    .inp-pre { font-family:'Fira Code',monospace; font-size:12px; color:#666; white-space:nowrap; }
+    .ans-inp {
+      flex:1; background:transparent; border:none; outline:none;
+      font-family:'Fira Code',monospace; font-size:13px;
+      color:#e8e8e8; padding:12px 0; caret-color:var(--mc);
+    }
+    .ans-inp::placeholder { color:#444; }
+    .ans-inp:disabled { opacity:.4; }
+
+    .btn-go {
+      padding:12px 24px; border:2px solid var(--mc);
+      border-radius:8px; cursor:pointer; white-space:nowrap;
+      background:var(--mc); color:#fff;
+      font-family:'Lexend Exa',sans-serif; font-size:13px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase;
+      transition:all .2s;
+      box-shadow:3px 3px 0 rgba(255,45,107,.4);
+      text-shadow:0 0 10px rgba(255,255,255,.3);
+    }
+    .btn-go:hover { box-shadow:0 0 16px var(--mc-glow), 3px 3px 0 rgba(255,45,107,.4); }
+    .btn-go:active { transform:translate(2px,2px); box-shadow:1px 1px 0 rgba(255,45,107,.4); }
+
+    /* ── FEEDBACK ── */
+    .feedback { display:none; padding:14px 18px; border-radius:8px; font-size:.88rem; line-height:1.7; margin-top:10px; animation:cardIn .25s ease; }
+    .feedback.show { display:block; }
+    .feedback.ok   { background:#f0fff4; border:1.5px solid var(--ok); color:#1b5e20; }
+    .feedback.fail { background:#fff0f2; border:1.5px solid var(--err); color:#b71c1c; }
+    .feedback .fb-head { font-family:'Lexend Exa',sans-serif; font-weight:700; margin-bottom:4px; font-size:.92rem; }
+    .feedback.ok   .fb-head { color:var(--ok); }
+    .feedback.fail .fb-head { color:var(--err); }
+    .feedback code {
+      font-family:'Fira Code',monospace; font-size:12px;
+      background:rgba(0,0,0,.07); padding:1px 6px; border-radius:4px; color:var(--ink);
+    }
+
+    /* ── HINT ── */
+    .btn-hint {
+      background:none; border:1.5px solid var(--border); color:var(--muted);
+      font-family:'Lexend',sans-serif; font-size:12px; font-weight:500;
+      padding:5px 14px; border-radius:6px; cursor:pointer; margin-top:8px;
+      transition:all .2s; display:inline-block;
+    }
+    .btn-hint:hover { border-color:var(--n4); color:var(--n4); }
+    .hint-box {
+      display:none; margin-top:8px; padding:12px 16px;
+      background:#fffdf0; border:1.5px solid var(--n4);
+      border-radius:8px; font-size:.86rem; color:#5d4037; line-height:1.6;
+    }
+    .hint-box.show { display:block; animation:cardIn .2s ease; }
+
+    /* ── NEXT ── */
+    .btn-next {
+      display:none; margin-top:12px; background:transparent;
+      border:2px solid var(--border2); color:var(--ink);
+      font-family:'Lexend Exa',sans-serif; font-size:13px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase;
+      padding:10px 28px; border-radius:8px; cursor:pointer;
+      transition:all .2s;
+      box-shadow:2px 2px 0 var(--border);
+    }
+    .btn-next:hover { border-color:var(--ink); box-shadow:3px 3px 0 var(--ink); }
+    .btn-next.show  { display:inline-block; animation:cardIn .3s ease; }
+
+    /* ── MODULE COMPLETE ── */
+    #mod-complete { display:none; animation:cardIn .4s ease; }
+    #mod-complete.show { display:block; }
+    .mc-card {
+      background:var(--card); border:2px solid var(--mc);
+      border-radius:18px; padding:44px 36px; text-align:center;
+      position:relative; overflow:hidden;
+      box-shadow:6px 6px 0 rgba(255,45,107,.25);
+    }
+    .mc-card::before {
+      content:''; position:absolute; top:0; left:0; right:0; height:4px;
+      background:linear-gradient(90deg,var(--mc),var(--n4),var(--n3),var(--n2));
+      box-shadow:0 0 12px var(--mc-glow);
+    }
+    .mc-inner { position:relative; }
+    .mc-stars { font-size:2rem; letter-spacing:8px; margin-bottom:16px; }
+    .mc-tag {
+      font-family:'Fira Code',monospace; font-size:10px; letter-spacing:3px;
+      text-transform:uppercase; color:var(--muted); margin-bottom:8px;
+    }
+    .mc-title {
+      font-family:'Lexend Exa',sans-serif; font-size:2.2rem;
+      font-weight:700; line-height:1; margin-bottom:6px;
+      color:var(--mc); text-shadow:0 0 20px var(--mc-glow);
+    }
+    .mc-score-row { display:flex; align-items:center; justify-content:center; gap:24px; margin:24px 0; flex-wrap:wrap; }
+    .mc-stat { display:flex; flex-direction:column; align-items:center; gap:4px; }
+    .mc-num { font-family:'Lexend Exa',sans-serif; font-size:2.8rem; font-weight:900; line-height:1; }
+    .mc-num.ok  { color:var(--ok); }
+    .mc-num.err { color:var(--err); }
+    .mc-num.xp  { color:var(--n4); text-shadow:0 0 10px rgba(255,149,0,.3); }
+    .mc-lbl { font-size:11px; color:var(--muted); letter-spacing:1px; text-transform:uppercase; }
+    .mc-msg { font-size:.95rem; color:var(--muted); margin-bottom:28px; font-style:italic; }
+    .btn-continue {
+      padding:14px 40px; border:none; border-radius:10px;
+      font-family:'Lexend Exa',sans-serif; font-size:15px; font-weight:700;
+      letter-spacing:2px; cursor:pointer; text-transform:uppercase;
+      background:var(--mc); color:#fff;
+      box-shadow:4px 4px 0 rgba(255,45,107,.4);
+      transition:all .2s;
+      text-shadow:0 0 10px rgba(255,255,255,.3);
+    }
+    .btn-continue:hover { box-shadow:0 0 20px var(--mc-glow), 4px 4px 0 rgba(255,45,107,.4); }
+
+    /* ── FINAL ── */
+    #final-screen { display:none; animation:cardIn .5s ease; }
+    #final-screen.show { display:block; }
+    .final-wrap { background:var(--card); border:2px solid var(--border); border-radius:20px; overflow:hidden; box-shadow:6px 6px 0 var(--border); }
+    .final-banner {
+      padding:40px 36px 32px; text-align:center;
+      background:linear-gradient(135deg,#111,#1a0020,#001a20);
+      border-bottom:2px solid var(--border); position:relative; overflow:hidden;
+    }
+    .final-banner::before {
+      content:''; position:absolute; inset:0;
+      background:radial-gradient(ellipse at 50% 110%,rgba(255,45,107,.12),transparent 60%);
+    }
+    .final-trophy { font-size:3.5rem; margin-bottom:12px; position:relative; }
+    .final-title {
+      font-family:'Lexend Exa',sans-serif; font-size:clamp(1.6rem,5vw,2.8rem);
+      font-weight:900; line-height:1; color:#fff; margin-bottom:4px; position:relative;
+    }
+    .final-sub { color:rgba(255,255,255,.5); font-size:.9rem; position:relative; }
+    .final-big-score {
+      font-family:'Lexend Exa',sans-serif; font-size:clamp(4rem,14vw,7rem);
+      font-weight:900; line-height:1; color:var(--n4);
+      text-shadow:0 0 40px rgba(255,149,0,.5); position:relative;
+    }
+    .final-denom { font-size:2.5rem; opacity:.4; }
+    .final-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--border); border-bottom:1px solid var(--border); }
+    .final-cell { background:var(--card); padding:20px 24px; display:flex; flex-direction:column; gap:4px; }
+    .fc-mod { font-family:'Lexend Exa',sans-serif; font-size:11px; font-weight:700; letter-spacing:1px; text-transform:uppercase; }
+    .fc-score { font-family:'Lexend Exa',sans-serif; font-size:1.6rem; font-weight:900; line-height:1; }
+    .fc-chips { display:flex; gap:4px; margin-top:4px; }
+    .fc-chip { width:18px; height:18px; border-radius:3px; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; }
+    .fc-chip.c { background:#e8fff0; color:var(--ok); }
+    .fc-chip.e { background:#fff0f2; color:var(--err); }
+    .final-actions { padding:28px 36px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+    .btn-restart {
+      padding:13px 32px; border-radius:10px; cursor:pointer;
+      font-family:'Lexend Exa',sans-serif; font-size:14px; font-weight:700;
+      letter-spacing:1px; text-transform:uppercase;
+      background:var(--ink); color:#fff; border:none;
+      box-shadow:3px 3px 0 rgba(0,0,0,.3); transition:all .2s;
+    }
+    .btn-restart:hover { box-shadow:4px 4px 0 rgba(0,0,0,.4); transform:translate(-1px,-1px); }
+
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-5px)} 40%,80%{transform:translateX(5px)} }
+    @keyframes pop   { 0%{transform:scale(1)} 40%{transform:scale(1.015)} 100%{transform:scale(1)} }
+    .shake { animation:shake .3s ease; }
+    .pop   { animation:pop   .3s ease; }
+
+    @media(max-width:560px) {
+      .module-map { grid-template-columns:repeat(2,1fr); }
+      .final-grid { grid-template-columns:1fr; }
+      .hdr { flex-direction:column; }
+      .xp-wrap { max-width:100%; width:100%; }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="game-label">// JavaScript · Base da Linguagem</div>
+      <div class="game-title">JS <span>BASE</span></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top">
+        <span class="xp-label">⚡ XP</span>
+        <span class="xp-val" id="xp-val">0 / 2000</span>
+      </div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="module-map" id="mod-map"></div>
+
+  <div class="prog-strip">
+    <div class="prog-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-frac" id="prog-frac">0/20</div>
+  </div>
+
+  <div class="chip-row" id="chip-row"></div>
+  <div id="q-area"></div>
+
+  <div id="mod-complete">
+    <div class="mc-card" id="mc-card">
+      <div class="mc-inner">
+        <div class="mc-stars" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">// módulo completo</div>
+        <div class="mc-title" id="mc-title">—</div>
+        <div class="mc-score-row">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Corretas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+        <button class="btn-continue" id="btn-continue" onclick="startNextModule()">PRÓXIMO →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-banner">
+        <div class="final-trophy">🏆</div>
+        <div class="final-title">Base Testada!</div>
+        <div class="final-sub" id="final-sub">resultado final</div>
+        <div class="final-big-score"><span id="f-num">0</span><span class="final-denom">/20</span></div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions"><button class="btn-restart" onclick="restart()">↩ Reiniciar</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODULES = [
+  {
+    id:'vars', name:'var / let / const', icon:'📦',
+    color:'#ff2d6b', glow:'rgba(255,45,107,.2)',
+    questions:[
+      {
+        method:'const',
+        title:'Declarar constante',
+        code:`<span class="cm">// Valor que nunca será reatribuído</span>
+<span class="ck">___</span> <span class="co">PI</span> = <span class="cs">3.14159</span>;`,
+        question:'Para declarar uma variável cujo valor <strong>não pode ser reatribuído</strong>, qual palavra-chave usar?',
+        prefix:'',
+        placeholder:'const',
+        answers:['const'],
+        hint:'No PHP seria uma constante com define(). Em JS moderno é const — use sempre que o valor não mudar.',
+        explanation:'<code>const</code> declara uma variável que não pode ser reatribuída. Tente <code>PI = 3</code> depois e terá um <code>TypeError</code>. Use <code>const</code> por padrão — só troque por <code>let</code> quando precisar reatribuir.'
+      },
+      {
+        method:'let',
+        title:'Variável de bloco',
+        code:`<span class="ck">for</span> (<span class="ck">___</span> <span class="co">i</span> = <span class="cs">0</span>; <span class="co">i</span> < <span class="cs">5</span>; <span class="co">i</span>++) {
+  console.<span class="cf">log</span>(<span class="co">i</span>);
+}
+<span class="cm">// i não existe aqui fora</span>`,
+        question:'Para declarar a variável de controle do <code>for</code> com <strong>escopo de bloco</strong> (sem vazar para fora), qual palavra-chave usar?',
+        prefix:'',
+        placeholder:'let',
+        answers:['let'],
+        hint:'let tem escopo de bloco — a variável existe só dentro das chaves onde foi declarada. No PHP é como if/for naturalmente.',
+        explanation:'<code>let</code> tem escopo de bloco: o <code>i</code> existe apenas dentro do <code>for</code>. Com <code>var</code>, o <code>i</code> "vazaria" para o escopo externo — comportamento que causou muitos bugs históricos em JS.'
+      },
+      {
+        method:'template literal',
+        title:'Interpolar variáveis na string',
+        code:`<span class="ck">const</span> <span class="co">nome</span> = <span class="cs">'Ana'</span>;
+<span class="ck">const</span> <span class="co">msg</span> = <span class="cs">___</span>Olá, <span class="cs">${'$'}{nome}!</span><span class="cs">___</span>;`,
+        question:'Para criar uma string com variáveis interpoladas (como <code>"Olá, $nome"</code> do PHP), use template literals com qual caractere como delimitador?',
+        prefix:'',
+        placeholder:'`Olá, ${nome}!`',
+        answers:['`Olá, ${nome}!`','`Olá, ${ nome }!`'],
+        hint:'Template literals usam backtick (`) como delimitador, não aspas. As variáveis vão dentro de ${ }.',
+        explanation:'Template literals com backtick (<code>`</code>) permitem interpolação com <code>${variavel}</code> — equivalente ao <code>"Olá, $nome"</code> do PHP. Também suportam múltiplas linhas sem precisar de <code>\\n</code>.'
+      },
+      {
+        method:'typeof',
+        title:'Verificar o tipo',
+        code:`<span class="ck">const</span> <span class="co">valor</span> = <span class="cs">42</span>;
+console.<span class="cf">log</span>(<span class="cf">___</span> <span class="co">valor</span>); <span class="cm">// "number"</span>`,
+        question:'Para descobrir o tipo de uma variável em JS, qual operador retorna uma string com o tipo (<code>"number"</code>, <code>"string"</code>, <code>"boolean"</code>, etc)?',
+        prefix:'',
+        placeholder:'typeof',
+        answers:['typeof'],
+        hint:'É um operador unário, igual ao sizeof do C ou gettype() do PHP. Só que em JS é typeof.',
+        explanation:'<code>typeof</code> retorna uma string com o tipo: <code>"number"</code>, <code>"string"</code>, <code>"boolean"</code>, <code>"undefined"</code>, <code>"object"</code>, <code>"function"</code>. Curiosidade: <code>typeof null === "object"</code> é um bug histórico do JS.'
+      },
+      {
+        method:'=== vs ==',
+        title:'Comparação estrita',
+        code:`<span class="ck">const</span> <span class="co">num</span> = <span class="cs">5</span>;
+<span class="ck">const</span> <span class="co">str</span> = <span class="cs">'5'</span>;
+
+console.<span class="cf">log</span>(<span class="co">num</span> <span class="cf">___</span> <span class="co">str</span>); <span class="cm">// false</span>`,
+        question:'Qual operador compara <strong>valor E tipo</strong> ao mesmo tempo, retornando <code>false</code> ao comparar o número <code>5</code> com a string <code>"5"</code>?',
+        prefix:'num ',
+        placeholder:'=== str',
+        answers:['=== str'],
+        hint:'No PHP o === também existe e funciona igual. Em JS, use sempre === para evitar conversões implícitas surpresa.',
+        explanation:'<code>===</code> é a comparação estrita: compara valor e tipo sem conversão. <code>5 == "5"</code> é <code>true</code> (conversão implícita), mas <code>5 === "5"</code> é <code>false</code>. Em JS moderno, sempre prefira <code>===</code>.'
+      },
+    ]
+  },
+  {
+    id:'funcoes', name:'Funções & Arrow', icon:'⚙️',
+    color:'#00e5ff', glow:'rgba(0,229,255,.2)',
+    questions:[
+      {
+        method:'function declaration',
+        title:'Declarar função',
+        code:`<span class="ck">___</span> <span class="cf">somar</span>(<span class="co">a</span>, <span class="co">b</span>) {
+  <span class="ck">return</span> <span class="co">a</span> + <span class="co">b</span>;
+}`,
+        question:'Qual palavra-chave declara uma função nomeada em JavaScript — equivalente ao <code>function somar($a, $b)</code> do PHP?',
+        prefix:'',
+        placeholder:'function',
+        answers:['function'],
+        hint:'Exatamente igual ao PHP: function nome(params) { }',
+        explanation:'<code>function</code> declara uma função nomeada. Funções declaradas com <code>function</code> são "hoisted" — podem ser chamadas antes de serem declaradas no código, diferente de arrow functions e function expressions.'
+      },
+      {
+        method:'arrow function',
+        title:'Arrow function',
+        code:`<span class="cm">// Equivalente à function acima, mas mais curta</span>
+<span class="ck">const</span> <span class="cf">somar</span> = (<span class="co">a</span>, <span class="co">b</span>) <span class="ck">___</span> <span class="co">a</span> + <span class="co">b</span>;`,
+        question:'Para criar uma arrow function com retorno implícito (sem chaves e sem <code>return</code>), qual símbolo conecta os parâmetros ao corpo?',
+        prefix:'(a, b) ',
+        placeholder:'=> a + b',
+        answers:['=> a + b','=> (a + b)'],
+        hint:'É o símbolo de "flecha" => — por isso o nome arrow function. (params) => expressão',
+        explanation:'<code>=></code> cria uma arrow function. Sem chaves, o retorno é implícito: <code>(a, b) => a + b</code> equivale a <code>function(a,b){ return a+b; }</code>. Com chaves você precisa do <code>return</code> explícito.'
+      },
+      {
+        method:'callback',
+        title:'Função como argumento',
+        code:`<span class="ck">const</span> <span class="co">numeros</span> = [<span class="cs">1</span>, <span class="cs">2</span>, <span class="cs">3</span>];
+<span class="co">numeros</span>.<span class="cf">forEach</span>((<span class="co">n</span>) <span class="ck">=></span> {
+  console.<span class="cf">log</span>(<span class="co">n</span>);
+});`,
+        question:'A função passada dentro do <code>forEach</code> é chamada de <strong>callback</strong>. Complete o placeholder com o termo correto:',
+        prefix:'numeros.forEach(',
+        placeholder:'(n) => { console.log(n); })',
+        answers:['(n) => { console.log(n); })','(n) => { console.log(n) })','n => { console.log(n); })','n => { console.log(n) })'],
+        hint:'O callback é a função que você passa como argumento para outra função executar depois. Pode ser arrow function ou function normal.',
+        explanation:'Uma <strong>callback</strong> é uma função passada como argumento para outra função. <code>forEach</code> chama sua callback para cada elemento. É o padrão central do JS: <code>addEventListener</code>, <code>setTimeout</code>, <code>fetch().then()</code> — todos recebem callbacks.'
+      },
+      {
+        method:'default parameter',
+        title:'Parâmetro padrão',
+        code:`<span class="ck">function</span> <span class="cf">saudar</span>(<span class="co">nome</span> <span class="ck">___</span> <span class="cs">'Visitante'</span>) {
+  <span class="ck">return</span> <span class="cs">\`Olá, \${nome}!\`</span>;
+}
+<span class="cf">saudar</span>(); <span class="cm">// "Olá, Visitante!"</span>`,
+        question:'Para definir um valor padrão quando nenhum argumento é passado (igual ao PHP 8 <code>function f($x = 10)</code>), qual símbolo usar?',
+        prefix:'(nome ',
+        placeholder:"= 'Visitante')",
+        answers:["= 'Visitante')","= \"Visitante\")"],
+        hint:'Exatamente igual ao PHP: function saudar($nome = "Visitante"). O símbolo é =',
+        explanation:'Parâmetros padrão com <code>=</code> são idênticos ao PHP. Se o argumento não for passado ou for <code>undefined</code>, usa o valor padrão. <code>null</code> NÃO usa o padrão — só <code>undefined</code>.'
+      },
+      {
+        method:'return',
+        title:'Retornar valor',
+        code:`<span class="ck">function</span> <span class="cf">dobrar</span>(<span class="co">n</span>) {
+  <span class="ck">___</span> <span class="co">n</span> * <span class="cs">2</span>;
+}
+<span class="ck">const</span> <span class="co">res</span> = <span class="cf">dobrar</span>(<span class="cs">5</span>); <span class="cm">// 10</span>`,
+        question:'Para que a função entregue um valor para quem a chamou, qual palavra-chave usar antes da expressão?',
+        prefix:'',
+        placeholder:'return n * 2;',
+        answers:['return n * 2;','return n*2;','return (n * 2);'],
+        hint:'Igual ao PHP: return $n * 2; — em JS só cai o $.',
+        explanation:'<code>return</code> termina a execução da função e devolve o valor. Sem <code>return</code>, a função retorna <code>undefined</code> implicitamente. Em arrow functions sem chaves, o return é implícito: <code>n => n * 2</code>.'
+      },
+    ]
+  },
+  {
+    id:'arrays', name:'Arrays & Objetos', icon:'🗃️',
+    color:'#aaff00', glow:'rgba(170,255,0,.2)',
+    questions:[
+      {
+        method:'.push()',
+        title:'Adicionar ao final do array',
+        code:`<span class="ck">const</span> <span class="co">frutas</span> = [<span class="cs">'maçã'</span>, <span class="cs">'banana'</span>];
+<span class="co">frutas</span>.<span class="cf">___</span>(<span class="cs">'laranja'</span>);
+<span class="cm">// ['maçã', 'banana', 'laranja']</span>`,
+        question:'Para adicionar um item ao <strong>final</strong> de um array (equivalente ao <code>array_push()</code> do PHP), qual método usar?',
+        prefix:'frutas.',
+        placeholder:"push('laranja')",
+        answers:["push('laranja')","push(\"laranja\")"],
+        hint:'array_push($arr, $item) em PHP. Em JS é arr.push(item) — mais curto.',
+        explanation:'<code>push()</code> adiciona ao final e retorna o novo tamanho do array. O par oposto é <code>pop()</code> que remove do final. Para o início: <code>unshift()</code> adiciona, <code>shift()</code> remove.'
+      },
+      {
+        method:'.map()',
+        title:'Transformar cada elemento',
+        code:`<span class="ck">const</span> <span class="co">nums</span> = [<span class="cs">1</span>, <span class="cs">2</span>, <span class="cs">3</span>];
+<span class="ck">const</span> <span class="co">dobros</span> = <span class="co">nums</span>.<span class="cf">___</span>(<span class="co">n</span> => <span class="co">n</span> * <span class="cs">2</span>);
+<span class="cm">// [2, 4, 6]</span>`,
+        question:'Para criar um <strong>novo array</strong> aplicando uma transformação a cada elemento (como <code>array_map()</code> do PHP), qual método usar?',
+        prefix:'nums.',
+        placeholder:'map(n => n * 2)',
+        answers:['map(n => n * 2)','map(n => n*2)','map((n) => n * 2)','map((n) => n*2)'],
+        hint:'array_map(function($n){ return $n * 2; }, $arr) em PHP. Em JS: arr.map(n => n * 2)',
+        explanation:'<code>map()</code> retorna um <strong>novo array</strong> com o mesmo tamanho, mas com cada elemento transformado. Nunca modifica o array original. Diferente de <code>forEach</code> que não retorna nada.'
+      },
+      {
+        method:'.filter()',
+        title:'Filtrar elementos',
+        code:`<span class="ck">const</span> <span class="co">nums</span> = [<span class="cs">1</span>, <span class="cs">2</span>, <span class="cs">3</span>, <span class="cs">4</span>, <span class="cs">5</span>];
+<span class="ck">const</span> <span class="co">pares</span> = <span class="co">nums</span>.<span class="cf">___</span>(<span class="co">n</span> => <span class="co">n</span> % <span class="cs">2</span> === <span class="cs">0</span>);
+<span class="cm">// [2, 4]</span>`,
+        question:'Para criar um novo array com apenas os elementos que passam em uma condição (como <code>array_filter()</code> do PHP), qual método usar?',
+        prefix:'nums.',
+        placeholder:'filter(n => n % 2 === 0)',
+        answers:['filter(n => n % 2 === 0)','filter(n => n % 2 === 0)','filter((n) => n % 2 === 0)'],
+        hint:'array_filter($arr, function($n){ return $n % 2 == 0; }) em PHP. Em JS: arr.filter(n => condição)',
+        explanation:'<code>filter()</code> retorna um novo array com apenas os elementos onde a callback retornou <code>true</code>. O array original não é modificado. Encadear <code>filter().map()</code> é um padrão muito comum.'
+      },
+      {
+        method:'object literal',
+        title:'Criar objeto literal',
+        code:`<span class="ck">const</span> <span class="co">pessoa</span> = <span class="cf">___</span>
+  nome: <span class="cs">'Ana'</span>,
+  idade: <span class="cs">25</span>,
+  ativo: <span class="ck">true</span>
+<span class="cf">___</span>;`,
+        question:'Para criar um objeto literal com propriedades (equivalente ao array associativo <code>["nome" => "Ana"]</code> do PHP), quais são os delimitadores?',
+        prefix:'const pessoa = ',
+        placeholder:'{ nome: "Ana", idade: 25 }',
+        answers:['{ nome: \'Ana\', idade: 25 }','{ nome: "Ana", idade: 25 }','{nome:"Ana",idade:25}'],
+        hint:'Objetos em JS usam chaves {}. A sintaxe é { chave: valor } — sem => entre chave e valor, só dois-pontos.',
+        explanation:'Objetos literais usam <code>{ chave: valor }</code>. Diferente de arrays associativos do PHP (<code>["chave" => "valor"]</code>), as chaves não precisam de aspas (a menos que tenham caracteres especiais). Acesse com <code>pessoa.nome</code> ou <code>pessoa["nome"]</code>.'
+      },
+      {
+        method:'destructuring',
+        title:'Desestruturação',
+        code:`<span class="ck">const</span> <span class="co">pessoa</span> = { nome: <span class="cs">'Ana'</span>, idade: <span class="cs">25</span> };
+<span class="ck">const</span> <span class="cf">___</span> = <span class="co">pessoa</span>;
+console.<span class="cf">log</span>(<span class="co">nome</span>); <span class="cm">// 'Ana'</span>`,
+        question:'Para extrair as propriedades <code>nome</code> e <code>idade</code> do objeto em variáveis separadas de forma compacta, use destructuring:',
+        prefix:'const ',
+        placeholder:'{ nome, idade } = pessoa',
+        answers:['{ nome, idade } = pessoa','{nome, idade} = pessoa','{nome,idade} = pessoa'],
+        hint:'É como dizer: "crie variáveis com os mesmos nomes das propriedades do objeto". const { prop } = obj',
+        explanation:'Desestruturação (<code>const { nome, idade } = pessoa</code>) cria variáveis locais com os valores das propriedades. Equivale a fazer <code>const nome = pessoa.nome; const idade = pessoa.idade;</code> de forma compacta. Muito usado com parâmetros de funções e retornos de API.'
+      },
+    ]
+  },
+  {
+    id:'tipos', name:'Tipos & Operadores', icon:'🔬',
+    color:'#ff9500', glow:'rgba(255,149,0,.2)',
+    questions:[
+      {
+        method:'truthy / falsy',
+        title:'Valores falsy',
+        code:`<span class="ck">const</span> <span class="co">valor</span> = <span class="cs">''</span>;
+<span class="ck">if</span> (<span class="co">valor</span>) {
+  console.<span class="cf">log</span>(<span class="cs">'truthy'</span>);
+} <span class="ck">else</span> {
+  console.<span class="cf">log</span>(<span class="cs">'___'</span>); <span class="cm">// o que imprime?</span>
+}`,
+        question:'Uma string vazia <code>""</code> é um valor <strong>falsy</strong> em JS. O que será impresso no console?',
+        prefix:"console.log('",
+        placeholder:"falsy')",
+        answers:["falsy')","falsy');"],
+        hint:'Falsy em JS: false, 0, "", null, undefined, NaN. Qualquer outro valor é truthy.',
+        explanation:'String vazia <code>""</code> é <strong>falsy</strong> em JS — entra no <code>else</code>. Os 6 valores falsy: <code>false</code>, <code>0</code>, <code>""</code>, <code>null</code>, <code>undefined</code>, <code>NaN</code>. No PHP <code>"0"</code> também é falsy, mas em JS <code>"0"</code> é <strong>truthy</strong>!'
+      },
+      {
+        method:'nullish coalescing ??',
+        title:'Operador ??',
+        code:`<span class="ck">const</span> <span class="co">config</span> = <span class="ck">null</span>;
+<span class="ck">const</span> <span class="co">tema</span> = <span class="co">config</span> <span class="cf">___</span> <span class="cs">'light'</span>;
+<span class="cm">// tema === 'light'</span>`,
+        question:'Para usar um valor padrão <strong>apenas quando</strong> a variável for <code>null</code> ou <code>undefined</code> (mas não para <code>0</code> ou <code>""</code>), qual operador usar?',
+        prefix:'config ',
+        placeholder:"?? 'light'",
+        answers:["?? 'light'","?? \"light\""],
+        hint:'É o ?? (nullish coalescing). Diferente do || que dispara para qualquer falsy, o ?? só dispara para null/undefined.',
+        explanation:'<code>??</code> só usa o valor direito quando o esquerdo é <code>null</code> ou <code>undefined</code>. Com <code>||</code>: <code>0 || 10</code> daria <code>10</code> (0 é falsy). Com <code>??</code>: <code>0 ?? 10</code> daria <code>0</code> (0 não é null/undefined).'
+      },
+      {
+        method:'optional chaining ?.',
+        title:'Acessar propriedade segura',
+        code:`<span class="ck">const</span> <span class="co">user</span> = <span class="ck">null</span>;
+<span class="ck">const</span> <span class="co">nome</span> = <span class="co">user</span><span class="cf">___</span>.nome;
+<span class="cm">// undefined (sem erro!)</span>`,
+        question:'Para acessar <code>.nome</code> sem lançar erro quando <code>user</code> for <code>null</code>, qual operador de acesso seguro usar?',
+        prefix:'user',
+        placeholder:'?.nome',
+        answers:['?.nome','?. nome'],
+        hint:'É o ?. (optional chaining). Se o objeto for null/undefined, retorna undefined ao invés de lançar TypeError.',
+        explanation:'<code>?.</code> (optional chaining) retorna <code>undefined</code> em vez de lançar <code>TypeError: Cannot read properties of null</code>. Pode encadear: <code>user?.address?.city</code>. Muito útil com dados vindos de APIs que podem ser nulos.'
+      },
+      {
+        method:'spread operator',
+        title:'Espalhar array',
+        code:`<span class="ck">const</span> <span class="co">a</span> = [<span class="cs">1</span>, <span class="cs">2</span>];
+<span class="ck">const</span> <span class="co">b</span> = [<span class="cs">3</span>, <span class="cs">4</span>];
+<span class="ck">const</span> <span class="co">todos</span> = [<span class="cf">___</span><span class="co">a</span>, <span class="cf">___</span><span class="co">b</span>];
+<span class="cm">// [1, 2, 3, 4]</span>`,
+        question:'Para combinar dois arrays em um novo, qual operador "espalha" os elementos de um array dentro de outro?',
+        prefix:'[',
+        placeholder:'...a, ...b]',
+        answers:['...a, ...b]','...a,...b]'],
+        hint:'É o ... (spread/rest operator). Ele "desempacota" um array ou objeto dentro de outro.',
+        explanation:'O operador <code>...</code> (spread) espalha os elementos. <code>[...a, ...b]</code> é equivalente ao <code>array_merge($a, $b)</code> do PHP. Funciona também com objetos: <code>{...obj1, ...obj2}</code> mescla propriedades.'
+      },
+      {
+        method:'ternário',
+        title:'Operador ternário',
+        code:`<span class="ck">const</span> <span class="co">idade</span> = <span class="cs">20</span>;
+<span class="ck">const</span> <span class="co">status</span> = <span class="co">idade</span> >= <span class="cs">18</span>
+  <span class="cf">___</span> <span class="cs">'maior'</span>
+  : <span class="cs">'menor'</span>;`,
+        question:'Qual símbolo inicia a expressão ternária — equivalente ao <code>$x >= 18 ? "maior" : "menor"</code> do PHP?',
+        prefix:'idade >= 18 ',
+        placeholder:"? 'maior' : 'menor'",
+        answers:["? 'maior' : 'menor'","? \"maior\" : \"menor\"","?'maior':'menor'"],
+        hint:'Exatamente igual ao PHP: condição ? valor_true : valor_false',
+        explanation:'O ternário é idêntico ao PHP: <code>condição ? valorSeSim : valorSeNão</code>. Ótimo para atribuições inline simples. Para lógicas complexas, prefira <code>if/else</code> pela legibilidade.'
+      },
+    ]
+  },
+];
+
+// ── ESTADO ──
+let modIdx=0, qIdx=0, totalXP=0;
+const MAX_XP=2000, results=[[], [], [], []];
+let phase='quiz';
+
+function applyTheme(mod) {
+  const r=document.documentElement.style;
+  r.setProperty('--mc', mod.color);
+  r.setProperty('--mc-glow', mod.glow);
+  r.setProperty('--mc-dot', mod.color);
+}
+
+function renderModMap() {
+  document.getElementById('mod-map').innerHTML = MODULES.map((m,i)=>{
+    const done  = i<modIdx||(phase==='final'&&i<=modIdx);
+    const active= i===modIdx&&phase==='quiz';
+    const cls   = done?'done':active?'active':'';
+    const sc    = done?`${results[i].filter(Boolean).length}/5 ✓`:active?'EM JOGO':'—';
+    return `<div class="mod-card ${cls}" style="--mc:${m.color};--mc-glow:${m.glow}">
+      <div class="mod-lock">${i>modIdx?'🔒':''}</div>
+      <div class="mod-icon">${m.icon}</div>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-score">${sc}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChips() {
+  const row=document.getElementById('chip-row');
+  row.innerHTML='';
+  MODULES.forEach((m,mi)=>{
+    if(mi>0){const s=document.createElement('div');s.className='chip sep';row.appendChild(s);}
+    m.questions.forEach((_,qi)=>{
+      const gi=mi*5+qi, d=document.createElement('div');
+      d.className='chip'; d.id=`chip-${gi}`; d.textContent=qi+1;
+      const res=results[mi][qi];
+      if(res===true)  d.classList.add('c');
+      if(res===false) d.classList.add('e');
+      if(mi===modIdx&&qi===qIdx&&phase==='quiz'){
+        d.style.borderColor=MODULES[mi].color; d.style.color=MODULES[mi].color;
+        d.style.boxShadow=`0 0 8px ${MODULES[mi].glow}`;
+      }
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi,qi,ok){
+  const d=document.getElementById(`chip-${mi*5+qi}`);
+  if(!d)return;
+  d.classList.remove('c','e'); d.classList.add(ok?'c':'e');
+  d.style.borderColor=''; d.style.color=''; d.style.boxShadow='';
+  d.textContent=ok?'✓':'✗';
+}
+
+function renderProg(){
+  const mod=MODULES[Math.min(modIdx,MODULES.length-1)];
+  const total=modIdx*5+qIdx;
+  document.getElementById('prog-name').textContent=mod.name;
+  document.getElementById('prog-frac').textContent=`${Math.min(total,20)}/20`;
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},(_,i)=>{
+    const cls=i<qIdx?'done':i===qIdx?'active':'';
+    return `<div class="pdot ${cls}"></div>`;
+  }).join('');
+}
+
+function addXP(v){
+  totalXP=Math.min(totalXP+v,MAX_XP);
+  document.getElementById('xp-fill').style.width=(totalXP/MAX_XP*100)+'%';
+  document.getElementById('xp-val').textContent=`${totalXP} / ${MAX_XP}`;
+}
+
+function renderQuestion(){
+  const mod=MODULES[modIdx], q=mod.questions[qIdx];
+  applyTheme(mod); renderModMap(); renderChips(); renderProg();
+  const pfx=q.prefix?`<span class="inp-pre">${q.prefix}</span>`:`<span class="inp-pre">→</span>`;
+  document.getElementById('q-area').innerHTML=`
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-badge">// módulo ${modIdx+1} · questão ${qIdx+1}/5</span>
+        <span class="q-method">${q.method}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        <div class="code-ctx">${q.code}</div>
+        <p class="q-text">${q.question}</p>
+        <div class="input-row">
+          <div class="input-shell">
+            ${pfx}
+            <input class="ans-inp" id="ans" type="text" placeholder="${q.placeholder}"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+          </div>
+          <button class="btn-go" onclick="checkAnswer()">RUN ▶</button>
+        </div>
+        <button class="btn-hint" onclick="toggleHint()">💡 Dica PHP→JS</button>
+        <div class="hint-box" id="hint-box">${q.hint}</div>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advanceQuestion()">
+          ${qIdx<4?'Próxima →':'Finalizar Módulo →'}
+        </button>
+      </div>
+    </div>`;
+  const inp=document.getElementById('ans');
+  inp.focus();
+  setTimeout(() => { inp.placeholder = ''; }, 5000); // 👈 Tempo da dica (Depois ela some)
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();});
+}
+
+function checkAnswer(){
+  const inp=document.getElementById('ans'),fb=document.getElementById('feedback'),btn=document.getElementById('btn-next');
+  if(btn.classList.contains('show'))return;
+  const val=inp.value.trim(); if(!val)return;
+  const q=MODULES[modIdx].questions[qIdx];
+  const ok=q.answers.includes(val);
+  results[modIdx][qIdx]=ok; markChip(modIdx,qIdx,ok);
+  const card=document.getElementById('active-card');
+  if(ok){
+    addXP(80); card.classList.add('c-ok','pop'); setTimeout(()=>card.classList.remove('pop'),300);
+    fb.className='feedback ok show';
+    fb.innerHTML=`<div class="fb-head">✓ Correto! +80 XP</div>${q.explanation}`;
+  } else {
+    card.classList.add('c-err','shake'); setTimeout(()=>card.classList.remove('shake'),300);
+    const correct=q.prefix?`${q.prefix}${q.answers[0]}`:q.answers[0];
+    fb.className='feedback fail show';
+    fb.innerHTML=`<div class="fb-head">✗ Resposta incorreta</div>Correto: <code>${correct}</code><br><br>${q.explanation}`;
+  }
+  inp.disabled=true; btn.classList.add('show');
+}
+
+function toggleHint(){document.getElementById('hint-box').classList.toggle('show');}
+
+function advanceQuestion(){
+  if(qIdx<4){qIdx++;renderQuestion();}
+  else{showModComplete();}
+}
+
+function showModComplete(){
+  phase='mod-complete';
+  document.getElementById('q-area').innerHTML='';
+  const mod=MODULES[modIdx],res=results[modIdx],ok=res.filter(Boolean).length,pct=ok/5;
+  applyTheme(mod);
+  const mc=document.getElementById('mc-card');
+  mc.style.setProperty('--mc',mod.color); mc.style.setProperty('--mc-glow',mod.glow);
+  document.getElementById('mc-stars').textContent=pct===1?'⭐⭐⭐':pct>=.6?'⭐⭐':'⭐';
+  document.getElementById('mc-title').textContent=mod.name;
+  document.getElementById('mc-ok').textContent=ok;
+  document.getElementById('mc-err').textContent=5-ok;
+  document.getElementById('mc-xp').textContent=`+${ok*80}`;
+  document.getElementById('mc-msg').textContent=[[1,'Módulo dominado!'],[.8,'Muito bem!'],[.6,'Bom progresso.'],[0,'Continue!']].find(([t])=>pct>=t)[1];
+  const isLast=modIdx===MODULES.length-1;
+  document.getElementById('btn-continue').textContent=isLast?'VER RESULTADO →':'PRÓXIMO MÓDULO →';
+  document.getElementById('mod-complete').classList.add('show');
+  renderModMap(); renderChips();
+}
+
+function startNextModule(){
+  document.getElementById('mod-complete').classList.remove('show');
+  phase='quiz';
+  if(modIdx===MODULES.length-1){showFinal();return;}
+  modIdx++;qIdx=0;renderQuestion();
+}
+
+function showFinal(){
+  phase='final';
+  document.getElementById('q-area').innerHTML='';
+  const totalOk=results.flat().filter(Boolean).length;
+  document.getElementById('f-num').textContent=totalOk;
+  const pct=totalOk/20;
+  document.getElementById('final-sub').textContent=[[1,'🏆 Perfeito!'],[.85,'🔥 Excelente!'],[.7,'👍 Muito bom!'],[.5,'💪 Bom início!'],[0,'📚 Continue praticando!']].find(([t])=>pct>=t)[1];
+  document.getElementById('final-grid').innerHTML=MODULES.map((m,i)=>{
+    const res=results[i],ok=res.filter(Boolean).length;
+    const color=ok===5?'var(--ok)':ok>=3?m.color:'var(--err)';
+    const chips=res.map(r=>`<div class="fc-chip ${r?'c':'e'}">${r?'✓':'✗'}</div>`).join('');
+    return `<div class="final-cell"><div class="fc-mod" style="color:${m.color}">${m.icon} ${m.name}</div><div class="fc-score" style="color:${color}">${ok}/5</div><div class="fc-chips">${chips}</div></div>`;
+  }).join('');
+  document.getElementById('final-screen').classList.add('show');
+  modIdx=MODULES.length; renderModMap(); renderChips();
+  document.getElementById('prog-name').textContent='Completo';
+  document.getElementById('prog-frac').textContent='20/20';
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},()=>'<div class="pdot done"></div>').join('');
+}
+
+function restart(){
+  modIdx=0;qIdx=0;totalXP=0;phase='quiz';
+  results.forEach(r=>r.length=0);
+  document.getElementById('xp-fill').style.width='0%';
+  document.getElementById('xp-val').textContent='0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  applyTheme(MODULES[0]); renderQuestion();
+}
+
+applyTheme(MODULES[0]);
+renderQuestion();
+</script>
+</body>
+</html>

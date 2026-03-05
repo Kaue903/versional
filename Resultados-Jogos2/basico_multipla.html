@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS BASE — Múltipla Escolha</title>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Roboto+Condensed:wght@300;400;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:     #f5e642;
+      --ink:    #0a0a0a;
+      --card:   #ffffff;
+      --border: 3px solid #0a0a0a;
+      --accent: #0a0a0a;
+      --ok:     #00b300;
+      --err:    #d10000;
+      --dim:    #555;
+      --stripe: rgba(0,0,0,.045);
+
+      /* module colors */
+      --m1: #f5e642;
+      --m2: #ff6b35;
+      --m3: #00c2a8;
+      --m4: #c355f5;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+
+    body {
+      font-family:'Roboto Condensed',sans-serif;
+      background:var(--bg);
+      color:var(--ink);
+      min-height:100vh;
+    }
+    body::before {
+      content:'';position:fixed;inset:0;
+      background:repeating-linear-gradient(90deg,var(--stripe) 0px,var(--stripe) 1px,transparent 1px,transparent 40px),
+                 repeating-linear-gradient(0deg, var(--stripe) 0px,var(--stripe) 1px,transparent 1px,transparent 40px);
+      pointer-events:none;z-index:0;
+    }
+
+    .app{position:relative;z-index:1;max-width:800px;margin:0 auto;padding:28px 20px 80px;}
+
+    /* ── HEADER ── */
+    .hdr{display:flex;align-items:stretch;gap:0;margin-bottom:28px;border:var(--border);background:var(--ink);overflow:hidden;}
+    .hdr-left{padding:20px 28px;flex:1;}
+    .hdr-tag{font-family:'Space Mono',monospace;font-size:10px;color:rgba(245,230,66,.6);letter-spacing:3px;text-transform:uppercase;margin-bottom:6px;}
+    .hdr-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.8rem,8vw,5rem);line-height:.9;letter-spacing:2px;color:var(--bg);}
+    .hdr-title span{color:var(--m2);}
+    .hdr-right{background:var(--bg);border-left:var(--border);padding:20px 28px;display:flex;flex-direction:column;justify-content:center;min-width:200px;}
+    .xp-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:8px;}
+    .xp-big{font-family:'Bebas Neue',sans-serif;font-size:2rem;line-height:1;color:var(--ink);}
+    .xp-bar{height:8px;background:#ddd;border:2px solid var(--ink);margin-top:8px;overflow:hidden;}
+    .xp-fill{height:100%;background:var(--ink);transition:width .5s cubic-bezier(.4,0,.2,1);width:0%;}
+
+    /* ── MODULE GRID ── */
+    .mod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-bottom:24px;border:var(--border);overflow:hidden;}
+    .mod-cell{padding:14px 12px;border-right:var(--border);text-align:center;background:var(--card);transition:background .3s;}
+    .mod-cell:last-child{border-right:none;}
+    .mod-cell.active{background:var(--ink);color:var(--bg);}
+    .mod-cell.done{background:#e8e8e8;}
+    .mod-icon{font-size:1.3rem;margin-bottom:4px;display:block;}
+    .mod-name{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.5px;text-transform:uppercase;line-height:1.3;}
+    .mod-cell.active .mod-name{color:var(--bg);}
+    .mod-cell.done  .mod-name{color:var(--dim);}
+    .mod-sc{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;margin-top:4px;color:var(--dim);}
+    .mod-cell.active .mod-sc{color:var(--bg);}
+
+    /* ── PROGRESS BAR ── */
+    .prog-bar-wrap{background:var(--card);border:var(--border);padding:14px 20px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+    .prog-mod-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;min-width:180px;}
+    .prog-dots{display:flex;gap:6px;flex:1;}
+    .prog-dot{flex:1;height:8px;border:2px solid var(--ink);background:transparent;transition:background .3s;}
+    .prog-dot.done{background:var(--ink);}
+    .prog-dot.active{background:var(--ink);opacity:.4;}
+    .prog-num{font-family:'Space Mono',monospace;font-size:12px;color:var(--dim);white-space:nowrap;}
+
+    /* ── CHIPS ── */
+    .chip-row{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap;}
+    .chip{
+      width:30px;height:30px;border:2px solid var(--ink);background:transparent;
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--dim);
+      transition:all .3s;
+    }
+    .chip.c{background:var(--ok);border-color:var(--ok);color:#fff;}
+    .chip.e{background:var(--err);border-color:var(--err);color:#fff;}
+    .chip.sep{width:4px;height:30px;border:none;border-left:2px dashed #aaa;background:transparent;}
+
+    /* ── QUESTION CARD ── */
+    #q-area{transition:opacity .2s;}
+    .q-card{background:var(--card);border:var(--border);box-shadow:6px 6px 0 var(--ink);animation:slideIn .25s ease;}
+    @keyframes slideIn{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+    .q-card.c-ok {border-color:var(--ok); box-shadow:6px 6px 0 var(--ok);}
+    .q-card.c-err{border-color:var(--err);box-shadow:6px 6px 0 var(--err);}
+
+    .q-head{display:flex;justify-content:space-between;align-items:center;padding:12px 22px;border-bottom:var(--border);background:var(--ink);}
+    .q-num{font-family:'Space Mono',monospace;font-size:10px;color:rgba(245,230,66,.5);letter-spacing:2px;}
+    .q-tag{font-family:'Bebas Neue',sans-serif;font-size:1rem;letter-spacing:2px;padding:2px 14px;border:2px solid var(--bg);color:var(--bg);}
+
+    .q-body{padding:24px 22px;}
+    .q-title{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:1px;margin-bottom:12px;line-height:1.1;}
+
+    .code-ctx{
+      background:#0a0a0a;color:#e8e8e8;
+      border:2px solid var(--ink);border-left:6px solid var(--bg);
+      padding:16px 18px;margin-bottom:18px;
+      font-family:'Space Mono',monospace;font-size:12px;line-height:1.9;
+      white-space:pre;overflow-x:auto;
+    }
+    .ck{color:#c792ea}.cf{color:#82aaff}.cs{color:#c3e88d}.co{color:#ffcb6b}.cm{color:#546e7a;font-style:italic}.ct{color:#89ddff}
+
+    .q-text{font-size:1rem;font-weight:400;line-height:1.7;margin-bottom:18px;color:#222;}
+    .q-text strong{font-weight:700;}
+    .q-text code{font-family:'Space Mono',monospace;font-size:11px;background:#f0f0f0;padding:1px 6px;border:1.5px solid #ccc;}
+
+    /* ── OPTIONS ── */
+    .options{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
+    .opt{
+      display:flex;align-items:flex-start;gap:14px;
+      border:2px solid var(--ink);background:transparent;
+      padding:12px 16px;cursor:pointer;text-align:left;width:100%;
+      transition:all .15s; font-family:'Roboto Condensed',sans-serif;
+    }
+    .opt:hover:not(:disabled){background:#f0f0f0;transform:translate(-2px,-2px);box-shadow:4px 4px 0 var(--ink);}
+    .opt.selected{background:var(--ink);color:#f5e642;}
+    .opt.selected .opt-letter{background:var(--bg);color:var(--ink);}
+    .opt.r-ok {background:var(--ok);border-color:var(--ok);color:#fff;}
+    .opt.r-err{background:var(--err);border-color:var(--err);color:#fff;}
+    .opt.r-ok  .opt-letter{background:#fff;color:var(--ok);}
+    .opt.r-err .opt-letter{background:#fff;color:var(--err);}
+    .opt.r-dim{background:#e8e8e8;border-color:#aaa;color:#aaa;cursor:default;}
+    .opt.r-dim .opt-letter{background:#aaa;color:#fff;}
+    .opt-letter{
+      flex-shrink:0;width:28px;height:28px;
+      background:var(--ink);color:var(--bg);
+      display:flex;align-items:center;justify-content:center;
+      font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;
+      transition:all .15s;
+    }
+    .opt-text{font-size:.95rem;line-height:1.5;padding-top:2px;}
+    .opt-text code{font-family:'Space Mono',monospace;font-size:11px;background:rgba(255,255,255,.15);padding:1px 5px;}
+
+    .btn-confirm{
+      display:none;width:100%;padding:14px;
+      border:var(--border);background:var(--ink);color:var(--bg);
+      font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;cursor:pointer;
+      box-shadow:4px 4px 0 rgba(0,0,0,.3);transition:all .15s;
+    }
+    .btn-confirm.show{display:block;}
+    .btn-confirm:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 rgba(0,0,0,.3);}
+    .btn-confirm:active{transform:translate(2px,2px);box-shadow:2px 2px 0 rgba(0,0,0,.3);}
+
+    /* feedback */
+    .feedback{display:none;margin-top:12px;padding:16px 18px;border:2px solid;font-size:.9rem;line-height:1.7;animation:slideIn .2s ease;}
+    .feedback.show{display:block;}
+    .feedback.ok {border-color:var(--ok);background:#e8fff0;color:#1b5e20;}
+    .feedback.fail{border-color:var(--err);background:#fff0f0;color:#7f0000;}
+    .fb-head{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;letter-spacing:1px;margin-bottom:4px;}
+    .feedback code{font-family:'Space Mono',monospace;font-size:11px;background:rgba(0,0,0,.07);padding:1px 5px;}
+
+    .btn-next{
+      display:none;margin-top:10px;width:100%;padding:14px;
+      border:var(--border);background:transparent;color:var(--ink);
+      font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;cursor:pointer;
+      box-shadow:4px 4px 0 var(--ink);transition:all .15s;
+    }
+    .btn-next.show{display:block;}
+    .btn-next:hover{background:var(--ink);color:var(--bg);transform:translate(-2px,-2px);}
+
+    /* ── MOD COMPLETE ── */
+    #mod-complete{display:none;}
+    #mod-complete.show{display:block;animation:slideIn .4s ease;}
+    .mc-wrap{background:var(--ink);border:var(--border);box-shadow:8px 8px 0 rgba(0,0,0,.35);padding:0;overflow:hidden;}
+    .mc-top{background:var(--bg);border-bottom:var(--border);padding:36px 36px 28px;text-align:center;}
+    .mc-stars-row{font-size:2.5rem;letter-spacing:10px;margin-bottom:12px;}
+    .mc-tag{font-family:'Space Mono',monospace;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:6px;}
+    .mc-mod-name{font-family:'Bebas Neue',sans-serif;font-size:3rem;letter-spacing:2px;line-height:1;}
+    .mc-bottom{padding:28px 36px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;}
+    .mc-stats{display:flex;gap:24px;}
+    .mc-stat{display:flex;flex-direction:column;align-items:center;}
+    .mc-num{font-family:'Bebas Neue',sans-serif;font-size:3.5rem;line-height:1;}
+    .mc-num.ok {color:var(--ok);}
+    .mc-num.err{color:var(--err);}
+    .mc-num.xp {color:var(--bg);}
+    .mc-lbl{font-family:'Space Mono',monospace;font-size:9px;color:rgba(245,230,66,.4);letter-spacing:2px;text-transform:uppercase;}
+    .mc-msg{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:2px;color:var(--bg);max-width:200px;text-align:right;}
+    .btn-cont{
+      display:block;width:100%;margin-top:0;padding:16px;
+      background:var(--bg);border:none;border-top:var(--border);
+      font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:4px;cursor:pointer;
+      transition:all .15s;
+    }
+    .btn-cont:hover{background:#ffe000;letter-spacing:6px;}
+
+    /* ── FINAL ── */
+    #final-screen{display:none;}
+    #final-screen.show{display:block;animation:slideIn .4s ease;}
+    .final-wrap{background:var(--card);border:var(--border);box-shadow:8px 8px 0 var(--ink);overflow:hidden;}
+    .final-top{background:var(--ink);padding:44px 40px;text-align:center;position:relative;}
+    .final-top::before{content:'JS BASE';font-family:'Bebas Neue',sans-serif;font-size:8rem;color:rgba(255,255,255,.04);position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);white-space:nowrap;pointer-events:none;}
+    .final-score-big{font-family:'Bebas Neue',sans-serif;font-size:clamp(5rem,16vw,9rem);line-height:1;color:var(--bg);position:relative;}
+    .final-score-big span{font-size:3rem;opacity:.4;}
+    .final-label{font-family:'Space Mono',monospace;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:rgba(245,230,66,.5);margin-top:6px;}
+    .final-phrase{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--bg);margin-top:4px;position:relative;}
+    .final-grid{display:grid;grid-template-columns:repeat(2,1fr);}
+    .final-cell{padding:20px 24px;border-right:var(--border);border-bottom:var(--border);}
+    .final-cell:nth-child(2n){border-right:none;}
+    .final-cell:nth-child(3),.final-cell:nth-child(4){border-bottom:none;}
+    .fc-mod{font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:1px;margin-bottom:4px;}
+    .fc-score{font-family:'Bebas Neue',sans-serif;font-size:2.5rem;line-height:1;}
+    .fc-dots{display:flex;gap:4px;margin-top:6px;}
+    .fc-dot{width:18px;height:18px;border:2px solid var(--ink);}
+    .fc-dot.ok{background:var(--ok);border-color:var(--ok);}
+    .fc-dot.err{background:var(--err);border-color:var(--err);}
+    .final-actions{padding:24px 36px;display:flex;justify-content:center;border-top:var(--border);}
+    .btn-restart{
+      padding:14px 44px;border:var(--border);background:var(--ink);color:var(--bg);
+      font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:3px;cursor:pointer;
+      box-shadow:4px 4px 0 rgba(0,0,0,.4);transition:all .15s;
+    }
+    .btn-restart:hover{transform:translate(-2px,-2px);box-shadow:6px 6px 0 rgba(0,0,0,.4);}
+
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+    .shake{animation:shake .3s ease;}
+
+    @media(max-width:560px){
+      .mod-grid{grid-template-columns:repeat(2,1fr);}
+      .final-grid{grid-template-columns:1fr;}
+      .final-cell:nth-child(odd){border-right:none;}
+      .final-cell:nth-child(3){border-bottom:var(--border);}
+      .hdr{flex-direction:column;}
+      .hdr-right{border-left:none;border-top:var(--border);}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="hdr-tag">// múltipla escolha · base da linguagem</div>
+      <div class="hdr-title">JS <span>BASE</span><br>TEORIA</div>
+    </div>
+    <div class="hdr-right">
+      <div class="xp-label">pontuação</div>
+      <div class="xp-big" id="xp-val">0 / 2000</div>
+      <div class="xp-bar"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="mod-grid" id="mod-grid"></div>
+
+  <div class="prog-bar-wrap">
+    <div class="prog-mod-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-num" id="prog-num">0/20</div>
+  </div>
+
+  <div class="chip-row" id="chip-row"></div>
+  <div id="q-area"></div>
+
+  <!-- MOD COMPLETE -->
+  <div id="mod-complete">
+    <div class="mc-wrap">
+      <div class="mc-top">
+        <div class="mc-stars-row" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">// módulo completo</div>
+        <div class="mc-mod-name" id="mc-name">—</div>
+      </div>
+      <div class="mc-bottom">
+        <div class="mc-stats">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Certas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+      </div>
+      <button class="btn-cont" id="btn-cont" onclick="startNextModule()">PRÓXIMO MÓDULO →</button>
+    </div>
+  </div>
+
+  <!-- FINAL -->
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-top">
+        <div class="final-score-big"><span id="f-num">0</span><span>/20</span></div>
+        <div class="final-label">questões corretas</div>
+        <div class="final-phrase" id="f-phrase">resultado final</div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions"><button class="btn-restart" onclick="restart()">↩ REINICIAR</button></div>
+    </div>
+  </div>
+
+</div>
+<script>
+const MODULES = [
+  {
+    id:'vars', name:'var / let / const', icon:'📦',
+    questions:[
+      {
+        tag:'escopo',
+        title:'Escopo de bloco',
+        code:`<span class="ck">var</span> <span class="co">x</span> = <span class="cs">10</span>;
+<span class="ck">if</span> (<span class="ck">true</span>) {
+  <span class="ck">var</span> <span class="co">x</span> = <span class="cs">99</span>;
+}
+console.<span class="cf">log</span>(<span class="co">x</span>);`,
+        question:'O que será impresso no console? Lembre-se: <code>var</code> não tem escopo de bloco.',
+        options:['10, porque o if cria um escopo separado','99, porque var não respeita escopo de bloco — o x externo é sobrescrito','Um erro, porque x foi declarado duas vezes','undefined, pois o var interno é uma variável nova'],
+        correct:1,
+        explanation:'<code>var</code> tem escopo de <strong>função</strong>, não de bloco. O segundo <code>var x</code> dentro do <code>if</code> é a mesma variável do escopo externo — e a sobrescreve. Por isso <code>let</code> e <code>const</code> foram criados: eles têm escopo de bloco real.'
+      },
+      {
+        tag:'hoisting',
+        title:'Hoisting de var',
+        code:`console.<span class="cf">log</span>(<span class="co">nome</span>);
+<span class="ck">var</span> <span class="co">nome</span> = <span class="cs">'Ana'</span>;`,
+        question:'O que o console exibe quando você usa <code>var</code> antes da declaração?',
+        options:['ReferenceError: nome is not defined','Ana','null','undefined'],
+        correct:3,
+        explanation:'<code>var</code> é "hoisted" — a declaração sobe para o topo do escopo, mas a inicialização não. É como se o JS executasse <code>var nome; console.log(nome);</code> antes de atribuir <code>"Ana"</code>. O resultado é <code>undefined</code>, não erro. Com <code>let</code>/<code>const</code>, seria um ReferenceError real.'
+      },
+      {
+        tag:'const + objeto',
+        title:'const com objeto',
+        code:`<span class="ck">const</span> <span class="co">user</span> = { nome: <span class="cs">'Ana'</span> };
+<span class="co">user</span>.nome = <span class="cs">'Bob'</span>;
+console.<span class="cf">log</span>(<span class="co">user</span>.nome);`,
+        question:'<code>const</code> impede reatribuição — mas o que acontece ao modificar uma propriedade do objeto?',
+        options:['TypeError: Cannot assign to read only property','Bob — const protege a referência, não o conteúdo interno do objeto','Ana — const "congela" o objeto completamente','undefined'],
+        correct:1,
+        explanation:'<code>const</code> protege a <strong>referência</strong> (a variável não pode apontar para outro objeto), mas não o conteúdo. Você pode adicionar, modificar e deletar propriedades normalmente. Para um objeto verdadeiramente imutável, use <code>Object.freeze(user)</code>.'
+      },
+      {
+        tag:'template literal',
+        title:'Template literal multi-linha',
+        code:`<span class="ck">const</span> <span class="co">html</span> = <span class="cs">\`
+  &lt;div&gt;
+    &lt;p&gt;\${nome}&lt;/p&gt;
+  &lt;/div&gt;
+\`</span>;`,
+        question:'Além da interpolação com <code>${}</code>, qual outra vantagem exclusiva dos template literals (backtick) em relação a aspas normais?',
+        options:['Executam código JavaScript automaticamente dentro das chaves','Suportam strings multi-linha sem precisar de \\n ou concatenação','São mais rápidos que strings com aspas simples','Permitem usar aspas simples e duplas sem precisar de escape'],
+        correct:1,
+        explanation:'Template literals permitem strings multi-linha naturalmente — as quebras de linha são preservadas. Com aspas normais você precisaria de <code>\\n</code> e concatenação. Isso é especialmente útil para montar HTML dinâmico no DOM, como no exemplo acima.'
+      },
+      {
+        tag:'null vs undefined',
+        title:'null vs undefined',
+        code:`<span class="ck">let</span> <span class="co">a</span>;
+<span class="ck">let</span> <span class="co">b</span> = <span class="ck">null</span>;
+console.<span class="cf">log</span>(<span class="co">a</span>, <span class="co">b</span>);`,
+        question:'Qual é a diferença semântica entre <code>undefined</code> e <code>null</code> em JavaScript?',
+        options:['Não há diferença, são intercambiáveis','undefined = variável existe mas não foi inicializada (JS colocou); null = ausência intencional de valor (você colocou)','null = variável não declarada; undefined = variável declarada sem valor','Ambos disparam TypeError quando acessados'],
+        correct:1,
+        explanation:'<strong>undefined</strong>: o JS atribuiu automaticamente — variável declarada sem valor, parâmetro não passado, propriedade inexistente. <strong>null</strong>: você atribui explicitamente para indicar "sem valor intencionalmente". No PHP o equivalente mais próximo é <code>null</code> — mas JS tem esse <code>undefined</code> extra que é automático.'
+      },
+    ]
+  },
+  {
+    id:'funcoes', name:'Funções & Arrow', icon:'⚙️',
+    questions:[
+      {
+        tag:'this',
+        title:'this em arrow vs function',
+        code:`<span class="ck">const</span> <span class="co">btn</span> = document.<span class="cf">querySelector</span>(<span class="cs">'button'</span>);
+
+<span class="cm">// Versão A</span>
+<span class="co">btn</span>.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, <span class="ck">function</span>() {
+  console.<span class="cf">log</span>(<span class="ck">this</span>); <span class="cm">// ???</span>
+});
+
+<span class="cm">// Versão B</span>
+<span class="co">btn</span>.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, () => {
+  console.<span class="cf">log</span>(<span class="ck">this</span>); <span class="cm">// ???</span>
+});`,
+        question:'Qual é a diferença fundamental do <code>this</code> entre as versões A e B?',
+        options:['Não há diferença — this sempre aponta para o elemento clicado','Versão A: this = o botão (quem chamou). Versão B: this = contexto externo (provavelmente window/undefined)','Versão A: this = undefined. Versão B: this = o botão','Arrow functions não permitem usar this — causam erro'],
+        correct:1,
+        explanation:'<code>function</code> regular cria seu próprio <code>this</code> — dentro de um event listener, <code>this</code> é o elemento que disparou o evento. <strong>Arrow function não tem próprio <code>this</code></strong> — herda o <code>this</code> do escopo onde foi criada. Por isso, em event listeners que precisam do elemento: use <code>function</code> ou o parâmetro <code>event.currentTarget</code>.'
+      },
+      {
+        tag:'closure',
+        title:'Closure',
+        code:`<span class="ck">function</span> <span class="cf">criarContador</span>() {
+  <span class="ck">let</span> <span class="co">count</span> = <span class="cs">0</span>;
+  <span class="ck">return</span> () => {
+    <span class="co">count</span>++;
+    <span class="ck">return</span> <span class="co">count</span>;
+  };
+}
+<span class="ck">const</span> <span class="co">contador</span> = <span class="cf">criarContador</span>();
+console.<span class="cf">log</span>(<span class="cf">contador</span>()); <span class="cm">// ?</span>
+console.<span class="cf">log</span>(<span class="cf">contador</span>()); <span class="cm">// ?</span>`,
+        question:'O que o código imprime? Isso demonstra o conceito de <strong>closure</strong>.',
+        options:['0, 0 — count é redefinido a cada chamada','1, 1 — count volta ao início após cada return','1, 2 — a arrow function "fecha" sobre o count de criarContador, lembrando seu valor','ReferenceError: count is not defined'],
+        correct:2,
+        explanation:'<strong>Closure</strong>: a arrow function retornada "fecha" sobre a variável <code>count</code> do escopo de <code>criarContador</code>. Mesmo após <code>criarContador</code> terminar, a variável continua viva e acessível pela arrow. Cada chamada ao <code>contador()</code> incrementa o <em>mesmo</em> <code>count</code>. É a base de módulos, estado privado, e muito mais no JS.'
+      },
+      {
+        tag:'IIFE',
+        title:'Função auto-executável',
+        code:`(<span class="ck">function</span>() {
+  <span class="ck">const</span> <span class="co">segredo</span> = <span class="cs">'privado'</span>;
+  console.<span class="cf">log</span>(<span class="cs">'executou!'</span>);
+})();`,
+        question:'O que esse padrão faz e qual é seu propósito principal?',
+        options:['Declara e chama uma função — o propósito é criar um escopo isolado para não poluir o escopo global','Declara uma função assíncrona que executa depois de carregar a página','É um erro de sintaxe — funções não podem ser envoltas em parênteses','Serve apenas para organização visual do código, sem efeito funcional'],
+        correct:0,
+        explanation:'IIFE (Immediately Invoked Function Expression): a função é declarada e imediatamente executada. O propósito central é <strong>escopo isolado</strong> — variáveis dentro não vazam para o global. Antes dos módulos ES6 (<code>import/export</code>), era o padrão para encapsular bibliotecas e evitar conflitos de nome.'
+      },
+      {
+        tag:'rest params',
+        title:'Rest parameters',
+        code:`<span class="ck">function</span> <span class="cf">somar</span>(<span class="co">...nums</span>) {
+  <span class="ck">return</span> <span class="co">nums</span>.<span class="cf">reduce</span>((<span class="co">acc</span>, <span class="co">n</span>) => <span class="co">acc</span> + <span class="co">n</span>, <span class="cs">0</span>);
+}
+console.<span class="cf">log</span>(<span class="cf">somar</span>(<span class="cs">1</span>, <span class="cs">2</span>, <span class="cs">3</span>, <span class="cs">4</span>));`,
+        question:'O que <code>...nums</code> faz na declaração da função?',
+        options:['É o operador spread — espalha os números antes de passá-los','É o rest parameter — coleta todos os argumentos em um array chamado nums','Declara que a função aceita exatamente 3 argumentos','Cria uma cópia dos argumentos sem modificar os originais'],
+        correct:1,
+        explanation:'<code>...nums</code> na <strong>declaração</strong> da função é um <strong>rest parameter</strong>: coleta todos os argumentos passados em um único array. É o oposto do spread (que expande). Resultado: <code>nums = [1, 2, 3, 4]</code> → <code>reduce</code> soma tudo → <code>10</code>. Equivalente ao <code>...$args</code> do PHP 5.6+.'
+      },
+      {
+        tag:'higher-order',
+        title:'Higher-order function',
+        code:`<span class="ck">function</span> <span class="cf">aplicar</span>(<span class="co">fn</span>, <span class="co">valor</span>) {
+  <span class="ck">return</span> <span class="cf">fn</span>(<span class="co">valor</span>);
+}
+<span class="ck">const</span> <span class="co">res</span> = <span class="cf">aplicar</span>(<span class="co">n</span> => <span class="co">n</span> * <span class="cs">10</span>, <span class="cs">5</span>);`,
+        question:'O que é uma <strong>higher-order function</strong>, e qual o valor de <code>res</code>?',
+        options:['É uma função que só aceita números; res = 50','É uma função que recebe ou retorna outra função como argumento; res = 50','É uma função recursiva; res = 500','É uma função async; res = Promise{50}'],
+        correct:1,
+        explanation:'Uma <strong>higher-order function</strong> é uma função que: (1) recebe outra função como argumento, e/ou (2) retorna uma função. <code>aplicar</code> recebe a arrow <code>n => n * 10</code> como <code>fn</code>, e a chama com <code>5</code>. Resultado: <code>50</code>. <code>map</code>, <code>filter</code>, <code>forEach</code>, <code>addEventListener</code> — todos são higher-order functions.'
+      },
+    ]
+  },
+  {
+    id:'arrays', name:'Arrays & Objetos', icon:'🗃️',
+    questions:[
+      {
+        tag:'.find() vs .filter()',
+        title:'find() vs filter()',
+        code:`<span class="ck">const</span> <span class="co">users</span> = [
+  { id: <span class="cs">1</span>, nome: <span class="cs">'Ana'</span> },
+  { id: <span class="cs">2</span>, nome: <span class="cs">'Bob'</span> },
+  { id: <span class="cs">3</span>, nome: <span class="cs">'Ana'</span> },
+];`,
+        question:'Para buscar o <strong>primeiro</strong> usuário com <code>nome === "Ana"</code>, qual método usar?',
+        options:['users.filter(u => u.nome === "Ana") — retorna todos os que batem','users.find(u => u.nome === "Ana") — retorna o primeiro objeto que bate','users.map(u => u.nome === "Ana") — mapeia os resultados','users.indexOf("Ana") — retorna o índice'],
+        correct:1,
+        explanation:'<code>find()</code> retorna o <strong>primeiro elemento</strong> que satisfaz a condição (ou <code>undefined</code>). <code>filter()</code> retorna um <strong>array com todos</strong> os elementos que satisfazem. Use <code>find()</code> quando sabe que há um único resultado (ex: busca por ID). Use <code>filter()</code> quando podem haver vários.'
+      },
+      {
+        tag:'imutabilidade',
+        title:'Método que NÃO modifica o original',
+        code:`<span class="ck">const</span> <span class="co">arr</span> = [<span class="cs">3</span>, <span class="cs">1</span>, <span class="cs">2</span>];
+<span class="ck">const</span> <span class="co">ordenado</span> = arr.<span class="cf">???</span>();`,
+        question:'Qual destes métodos retorna um <strong>novo array</strong> sem modificar o original?',
+        options:['arr.sort() — ordena no lugar e retorna a referência','arr.reverse() — reverte no lugar e retorna a referência','arr.toSorted() — retorna novo array ordenado, original intacto','arr.push(4) — retorna o novo tamanho'],
+        correct:2,
+        explanation:'<code>sort()</code> e <code>reverse()</code> modificam o array original (mutação). <code>toSorted()</code> (ES2023) retorna um novo array ordenado sem tocar no original — assim como <code>map()</code>, <code>filter()</code>, <code>slice()</code>. Boas práticas preferem imutabilidade para evitar efeitos colaterais surpresa.'
+      },
+      {
+        tag:'object shorthand',
+        title:'Shorthand de propriedades',
+        code:`<span class="ck">const</span> <span class="co">nome</span> = <span class="cs">'Ana'</span>;
+<span class="ck">const</span> <span class="co">idade</span> = <span class="cs">25</span>;
+
+<span class="cm">// Jeito antigo:</span>
+<span class="ck">const</span> <span class="co">pessoa1</span> = { nome: <span class="co">nome</span>, idade: <span class="co">idade</span> };
+
+<span class="cm">// Jeito moderno ES6:</span>
+<span class="ck">const</span> <span class="co">pessoa2</span> = { <span class="co">nome</span>, <span class="co">idade</span> };`,
+        question:'Por que <code>{ nome, idade }</code> funciona sem os dois-pontos e o valor?',
+        options:['É um atalho: quando a variável tem o mesmo nome da propriedade, você pode omitir ": variavel"','É uma desestruturação disfarçada de criação de objeto','Funciona apenas com strings e números primitivos','É uma simplificação visual — o JS internamente converte para o formato longo'],
+        correct:0,
+        explanation:'Property shorthand: quando a chave do objeto tem o mesmo nome da variável, você escreve só o nome uma vez. <code>{ nome }</code> equivale a <code>{ nome: nome }</code>. Muito comum ao montar objetos para enviar a APIs, retornar de funções ou criar estados no React.'
+      },
+      {
+        tag:'spread objeto',
+        title:'Clonar e atualizar objeto',
+        code:`<span class="ck">const</span> <span class="co">user</span> = { nome: <span class="cs">'Ana'</span>, idade: <span class="cs">25</span>, ativo: <span class="ck">true</span> };
+<span class="ck">const</span> <span class="co">atualizado</span> = { ...<span class="co">user</span>, idade: <span class="cs">26</span> };`,
+        question:'O que <code>atualizado</code> contém e o que acontece com o <code>user</code> original?',
+        options:['atualizado = { nome: "Ana", idade: 26, ativo: true } | user não é modificado','atualizado = { idade: 26 } apenas | user não é modificado','atualizado = cópia exata de user com idade ainda 25 | user.idade = 26','TypeError: não é possível usar spread em objetos'],
+        correct:0,
+        explanation:'O spread copia todas as propriedades de <code>user</code> para o novo objeto, e então <code>idade: 26</code> sobrescreve o valor copiado. <code>user</code> original não é tocado — criamos um <strong>novo objeto</strong>. Essa é a forma padrão de atualizar estado de forma imutável no React e em JS moderno.'
+      },
+      {
+        tag:'array destructuring',
+        title:'Desestruturação de array',
+        code:`<span class="ck">const</span> [<span class="co">primeiro</span>, , <span class="co">terceiro</span>] = [<span class="cs">10</span>, <span class="cs">20</span>, <span class="cs">30</span>];
+console.<span class="cf">log</span>(<span class="co">primeiro</span>, <span class="co">terceiro</span>);`,
+        question:'O que o console imprime? Atenção para a vírgula extra.',
+        options:['10, 20','10, 30 — a vírgula extra pula o elemento do meio','10, undefined — não é possível pular posições','SyntaxError: vírgula dupla inválida'],
+        correct:1,
+        explanation:'Na desestruturação de array, uma vírgula sem nome de variável <strong>pula</strong> aquela posição. <code>[primeiro, , terceiro]</code> captura índice 0 e 2, ignorando índice 1. Resultado: <code>10 30</code>. Útil quando funções retornam arrays e você só quer alguns valores (ex: <code>const [data, , status] = resposta</code>).'
+      },
+    ]
+  },
+  {
+    id:'tipos', name:'Tipos & Operadores', icon:'🔬',
+    questions:[
+      {
+        tag:'coerção implícita',
+        title:'Coerção de tipo',
+        code:`console.<span class="cf">log</span>(<span class="cs">1</span> + <span class="cs">'2'</span>);
+console.<span class="cf">log</span>(<span class="cs">1</span> - <span class="cs">'2'</span>);`,
+        question:'Qual é o resultado de cada operação?',
+        options:['"3" e "-1" — JS converte number para string em ambos','12 e -1 — + concatena quando há string; - converte string para number','3 e -1 — + e - tratam tudo como número','NaN e NaN — operações mistas sempre retornam NaN'],
+        correct:1,
+        explanation:'Coerção implícita: <code>+</code> tem dupla função (soma e concatenação) — quando um lado é string, <strong>concatena</strong>: <code>1 + "2" = "12"</code>. O operador <code>-</code> é apenas subtração, então <strong>converte</strong> a string para número: <code>1 - "2" = -1</code>. Esse comportamento do <code>+</code> é fonte clássica de bugs.'
+      },
+      {
+        tag:'NaN',
+        title:'Verificar NaN',
+        code:`<span class="ck">const</span> <span class="co">resultado</span> = <span class="cf">parseInt</span>(<span class="cs">'abc'</span>);
+<span class="cm">// Como verificar se é NaN?</span>
+console.<span class="cf">log</span>(<span class="co">resultado</span> === <span class="cf">NaN</span>); <span class="cm">// ???</span>
+console.<span class="cf">log</span>(<span class="cf">isNaN</span>(<span class="co">resultado</span>));  <span class="cm">// ???</span>`,
+        question:'O que os dois console.log imprimem? NaN tem uma propriedade única em JS.',
+        options:['true, true','true, false','false, true — NaN é o único valor em JS que não é igual a si mesmo','false, false'],
+        correct:2,
+        explanation:'<code>NaN === NaN</code> é <code>false</code> — NaN é o único valor em JavaScript que não é igual a si mesmo. Por isso nunca compare com <code>=== NaN</code>. Use <code>Number.isNaN(valor)</code> (mais seguro que o global <code>isNaN()</code>, que tenta converter o argumento primeiro).'
+      },
+      {
+        tag:'short-circuit',
+        title:'Short-circuit evaluation',
+        code:`<span class="ck">const</span> <span class="co">user</span> = <span class="ck">null</span>;
+<span class="ck">const</span> <span class="co">nome</span> = <span class="co">user</span> && <span class="co">user</span>.nome;
+console.<span class="cf">log</span>(<span class="co">nome</span>);`,
+        question:'O que é impresso? Como funciona o curto-circuito com <code>&&</code>?',
+        options:['undefined — tenta acessar user.nome mesmo assim','TypeError: Cannot read properties of null','null — && retorna o primeiro valor falsy, sem avaliar o restante','false — user é null então retorna false'],
+        correct:2,
+        explanation:'<code>&&</code> retorna o <strong>primeiro valor falsy</strong> e para (curto-circuito). Como <code>null</code> é falsy, <code>user && user.nome</code> retorna <code>null</code> imediatamente sem tentar acessar <code>user.nome</code> — evitando o TypeError. Hoje o <code>?.</code> (optional chaining) é mais elegante para isso: <code>user?.nome</code>.'
+      },
+      {
+        tag:'type conversion',
+        title:'Converter string para número',
+        code:`<span class="ck">const</span> <span class="co">input</span> = <span class="cs">'42'</span>;
+<span class="ck">const</span> <span class="co">n1</span> = +<span class="co">input</span>;
+<span class="ck">const</span> <span class="co">n2</span> = <span class="cf">Number</span>(<span class="co">input</span>);
+<span class="ck">const</span> <span class="co">n3</span> = <span class="cf">parseInt</span>(<span class="co">input</span>);`,
+        question:'Qual é a diferença entre as três formas de converter string para número?',
+        options:['São idênticas e intercambiáveis em todos os casos','+input: operador unário rápido; Number(): converte qualquer tipo, retorna NaN em falha; parseInt(): extrai inteiro, ignora texto após os números (ex: "42px" → 42)','parseInt() é obsoleto, use sempre Number()','+ e Number() só funcionam com inteiros, parseInt() funciona com decimais'],
+        correct:1,
+        explanation:'<code>+input</code> e <code>Number()</code> se comportam igual para strings numéricas. A diferença: <code>parseInt("42px")</code> retorna <code>42</code> (para no texto), enquanto <code>Number("42px")</code> retorna <code>NaN</code>. Sempre passe a base como segundo argumento ao usar parseInt: <code>parseInt("10", 10)</code> para evitar interpretações octais.'
+      },
+      {
+        tag:'logical assignment',
+        title:'Logical assignment operators',
+        code:`<span class="ck">let</span> <span class="co">config</span> = <span class="ck">null</span>;
+<span class="co">config</span> <span class="cf">??=</span> { tema: <span class="cs">'dark'</span> };
+console.<span class="cf">log</span>(<span class="co">config</span>);
+
+<span class="ck">let</span> <span class="co">nome</span> = <span class="cs">'Ana'</span>;
+<span class="co">nome</span> <span class="cf">??=</span> <span class="cs">'Padrão'</span>;
+console.<span class="cf">log</span>(<span class="co">nome</span>);`,
+        question:'Qual o resultado dos dois console.log?',
+        options:['{ tema: "dark" } e "Padrão" — ??= sempre substitui','{ tema: "dark" } e "Ana" — ??= só atribui se o valor for null/undefined','null e "Ana" — ??= não funciona com objetos','{ tema: "dark" } e "Ana" — ??= atribui se null/undefined; "Ana" não é null/undefined, então permanece'],
+        correct:3,
+        explanation:'<code>??=</code> é o nullish assignment: <code>x ??= y</code> equivale a <code>x = x ?? y</code>. Só atribui se <code>x</code> for <code>null</code> ou <code>undefined</code>. Portanto: <code>config</code> era <code>null</code> → recebe o objeto. <code>nome</code> era <code>"Ana"</code> → não é null/undefined → permanece <code>"Ana"</code>.'
+      },
+    ]
+  },
+];
+
+// ── STATE ──
+let modIdx=0, qIdx=0, totalXP=0, selected=null, answered=false;
+const MAX_XP=2000, results=[[],[],[],[]];
+let phase='quiz';
+
+const COLS=['#f5e642','#ff6b35','#00c2a8','#c355f5'];
+const GLOWS=['rgba(245,230,66,.3)','rgba(255,107,53,.3)','rgba(0,194,168,.3)','rgba(195,85,245,.3)'];
+
+function renderModGrid(){
+  document.getElementById('mod-grid').innerHTML=MODULES.map((m,i)=>{
+    const done=i<modIdx||(phase==='final'&&i<=modIdx);
+    const active=i===modIdx&&phase==='quiz';
+    const cls=done?'done':active?'active':'';
+    const sc=done?`${results[i].filter(Boolean).length}/5`:active?'LIVE':'—';
+    return `<div class="mod-cell ${cls}"><span class="mod-icon">${m.icon}</span><div class="mod-name">${m.name}</div><div class="mod-sc">${sc}</div></div>`;
+  }).join('');
+}
+
+function renderChips(){
+  const row=document.getElementById('chip-row'); row.innerHTML='';
+  MODULES.forEach((m,mi)=>{
+    if(mi>0){const s=document.createElement('div');s.className='chip sep';row.appendChild(s);}
+    m.questions.forEach((_,qi)=>{
+      const d=document.createElement('div');
+      d.className='chip'; d.id=`chip-${mi*5+qi}`; d.textContent=qi+1;
+      const r=results[mi][qi];
+      if(r===true)d.classList.add('c');
+      if(r===false)d.classList.add('e');
+      if(mi===modIdx&&qi===qIdx&&phase==='quiz'){d.style.outline=`2px solid ${COLS[mi]}`;d.style.outlineOffset='2px';}
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi,qi,ok){
+  const d=document.getElementById(`chip-${mi*5+qi}`);
+  if(!d)return;
+  d.classList.remove('c','e'); d.classList.add(ok?'c':'e');
+  d.style.outline=''; d.style.outlineOffset='';
+  d.textContent=ok?'✓':'✗';
+}
+
+function renderProg(){
+  const total=modIdx*5+qIdx;
+  document.getElementById('prog-name').textContent=MODULES[Math.min(modIdx,3)].name;
+  document.getElementById('prog-num').textContent=`${Math.min(total,20)}/20`;
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},(_,i)=>`<div class="prog-dot ${i<qIdx?'done':i===qIdx?'active':''}"></div>`).join('');
+}
+
+function addXP(v){
+  totalXP=Math.min(totalXP+v,MAX_XP);
+  document.getElementById('xp-fill').style.width=(totalXP/MAX_XP*100)+'%';
+  document.getElementById('xp-val').textContent=`${totalXP} / ${MAX_XP}`;
+}
+
+function renderQuestion(){
+  selected=null; answered=false;
+  const q=MODULES[modIdx].questions[qIdx];
+  renderModGrid(); renderChips(); renderProg();
+  const letters=['A','B','C','D','E'];
+  const opts=q.options.map((o,i)=>`
+    <button class="opt" id="opt-${i}" onclick="selectOpt(${i})">
+      <div class="opt-letter">${letters[i]}</div>
+      <div class="opt-text">${o}</div>
+    </button>`).join('');
+  document.getElementById('q-area').innerHTML=`
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-num">// Q${modIdx*5+qIdx+1} de 20</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        ${q.code?`<div class="code-ctx">${q.code}</div>`:''}
+        <p class="q-text">${q.question}</p>
+        <div class="options">${opts}</div>
+        <button class="btn-confirm" id="btn-confirm" onclick="confirmAnswer()">CONFIRMAR ▶</button>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advance()">${qIdx<4?'PRÓXIMA →':'FINALIZAR MÓDULO →'}</button>
+      </div>
+    </div>`;
+}
+
+function selectOpt(i){
+  if(answered)return;
+  document.querySelectorAll('.opt').forEach(o=>o.classList.remove('selected'));
+  document.getElementById(`opt-${i}`).classList.add('selected');
+  selected=i;
+  document.getElementById('btn-confirm').classList.add('show');
+}
+
+function confirmAnswer(){
+  if(selected===null||answered)return;
+  answered=true;
+  const q=MODULES[modIdx].questions[qIdx];
+  const ok=selected===q.correct;
+  results[modIdx][qIdx]=ok; markChip(modIdx,qIdx,ok);
+  const card=document.getElementById('active-card');
+  if(ok){addXP(80); card.classList.add('c-ok');}
+  else  {card.classList.add('c-err','shake'); setTimeout(()=>card.classList.remove('shake'),300);}
+  document.querySelectorAll('.opt').forEach((o,i)=>{
+    o.disabled=true;
+    o.classList.remove('selected');
+    if(i===q.correct) o.classList.add('r-ok');
+    else if(i===selected&&!ok) o.classList.add('r-err');
+    else o.classList.add('r-dim');
+  });
+  const fb=document.getElementById('feedback');
+  fb.className=`feedback ${ok?'ok':'fail'} show`;
+  fb.innerHTML=`<div class="fb-head">${ok?'✓ CORRETO':'✗ INCORRETO'}</div>${q.explanation}`;
+  document.getElementById('btn-confirm').style.display='none';
+  document.getElementById('btn-next').classList.add('show');
+}
+
+function advance(){
+  if(qIdx<4){qIdx++;renderQuestion();}
+  else showModComplete();
+}
+
+function showModComplete(){
+  phase='mod-complete';
+  document.getElementById('q-area').innerHTML='';
+  const res=results[modIdx], ok=res.filter(Boolean).length, pct=ok/5;
+  document.getElementById('mc-stars').textContent=pct===1?'⭐⭐⭐':pct>=.6?'⭐⭐':'⭐';
+  document.getElementById('mc-name').textContent=MODULES[modIdx].name;
+  document.getElementById('mc-ok').textContent=ok;
+  document.getElementById('mc-err').textContent=5-ok;
+  document.getElementById('mc-xp').textContent=`+${ok*80}`;
+  document.getElementById('mc-msg').textContent=pct===1?'PERFEITO!':pct>=.8?'EXCELENTE!':pct>=.6?'BOM TRABALHO.':'CONTINUE!';
+  const isLast=modIdx===MODULES.length-1;
+  document.getElementById('btn-cont').textContent=isLast?'VER RESULTADO →':'PRÓXIMO MÓDULO →';
+  document.getElementById('mod-complete').classList.add('show');
+  renderModGrid(); renderChips();
+}
+
+function startNextModule(){
+  document.getElementById('mod-complete').classList.remove('show');
+  phase='quiz';
+  if(modIdx===MODULES.length-1){showFinal();return;}
+  modIdx++;qIdx=0;renderQuestion();
+}
+
+function showFinal(){
+  phase='final';
+  document.getElementById('q-area').innerHTML='';
+  const totalOk=results.flat().filter(Boolean).length;
+  const pct=totalOk/20;
+  document.getElementById('f-num').textContent=totalOk;
+  document.getElementById('f-phrase').textContent=['🏆 PERFEITO!','🔥 EXCELENTE!','👍 MUITO BOM!','💪 BOM INÍCIO!','📚 CONTINUE!'][[1,.85,.7,.5,0].findIndex(t=>pct>=t)];
+  document.getElementById('final-grid').innerHTML=MODULES.map((m,i)=>{
+    const res=results[i], ok=res.filter(Boolean).length;
+    const color=ok===5?'var(--ok)':ok>=3?COLS[i]:'var(--err)';
+    const dots=res.map(r=>`<div class="fc-dot ${r?'ok':'err'}"></div>`).join('');
+    return `<div class="final-cell"><div class="fc-mod" style="color:${COLS[i]}">${m.icon} ${m.name}</div><div class="fc-score" style="color:${color}">${ok}/5</div><div class="fc-dots">${dots}</div></div>`;
+  }).join('');
+  document.getElementById('final-screen').classList.add('show');
+  modIdx=4; renderModGrid(); renderChips();
+  document.getElementById('prog-name').textContent='COMPLETO';
+  document.getElementById('prog-num').textContent='20/20';
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},()=>'<div class="prog-dot done"></div>').join('');
+}
+
+function restart(){
+  modIdx=0;qIdx=0;totalXP=0;phase='quiz';selected=null;answered=false;
+  results.forEach(r=>r.length=0);
+  document.getElementById('xp-fill').style.width='0%';
+  document.getElementById('xp-val').textContent='0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  renderQuestion();
+}
+
+renderQuestion();
+</script>
+</body>
+</html>
