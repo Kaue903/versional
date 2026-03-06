@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Quiz Pt.2 — Completar Código</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:#0e0e12; --surface:#16161d; --surface2:#1e1e28;
+      --border:#2a2a3a; --border2:#383850;
+      --ok:#39ff14; --err:#ff3a5c; --gold:#ffd60a;
+      --text:#eeeef5; --muted:#6b6b88; --dim:#3a3a52;
+      --mc:#e63946; --mc-glow:rgba(230,57,70,.25);
+      --mc-dot:#e63946; --mc-btn:#e63946;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+    .app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:24px 20px 80px}
+
+    /* HEADER */
+    .hdr{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+    .hdr-left{display:flex;flex-direction:column;gap:4px}
+    .game-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--muted)}
+    .game-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;line-height:1;letter-spacing:-1px}
+    .game-title span{color:var(--gold)}
+    .xp-wrap{min-width:220px;flex:1;max-width:340px}
+    .xp-top{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;margin-bottom:6px}
+    .xp-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:2px;color:var(--gold);font-size:12px}
+    .xp-val{font-family:'Fira Code',monospace;font-size:11px;color:var(--muted)}
+    .xp-track{height:8px;background:var(--dim);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+    .xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),#ff9f00);box-shadow:0 0 10px rgba(255,214,10,.4);transition:width .6s cubic-bezier(.4,0,.2,1);width:0%}
+
+    /* MODULE MAP */
+    .module-map{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px}
+    .mod-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 10px;text-align:center;position:relative;overflow:hidden;transition:border-color .3s}
+    .mod-card::before{content:'';position:absolute;inset:0;background:var(--mc,transparent);opacity:.06;transition:opacity .3s}
+    .mod-card.active{border-color:var(--mc)}.mod-card.active::before{opacity:.12}
+    .mod-card.done{border-color:rgba(57,255,20,.3)}.mod-card.done::before{background:var(--ok);opacity:.07}
+    .mod-icon{font-size:1.4rem;margin-bottom:4px;filter:grayscale(1);opacity:.4;transition:all .3s}
+    .mod-card.active .mod-icon,.mod-card.done .mod-icon{filter:grayscale(0);opacity:1}
+    .mod-name{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);transition:color .3s}
+    .mod-card.active .mod-name{color:var(--mc)}.mod-card.done .mod-name{color:var(--ok)}
+    .mod-score{font-family:'Fira Code',monospace;font-size:10px;color:var(--dim);margin-top:3px;transition:color .3s}
+    .mod-card.done .mod-score{color:var(--ok)}
+    .mod-lock{position:absolute;top:6px;right:8px;font-size:10px;color:var(--dim)}
+    .mod-card.active .mod-lock,.mod-card.done .mod-lock{display:none}
+
+    /* PROGRESS STRIP */
+    .prog-strip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:16px}
+    .prog-module-name{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1rem;letter-spacing:1px;min-width:130px;color:var(--mc);transition:color .4s}
+    .prog-dots{display:flex;gap:6px;flex:1}
+    .pdot{flex:1;height:5px;border-radius:3px;background:var(--dim);transition:background .4s,box-shadow .4s}
+    .pdot.done{background:var(--mc-dot)}.pdot.active{background:var(--mc-dot);box-shadow:0 0 6px var(--mc-dot);opacity:.6}
+    .prog-frac{font-family:'Fira Code',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+
+    /* CHIPS */
+    .chip-row{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap}
+    .chip{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--muted);transition:all .3s}
+    .chip.c{background:rgba(57,255,20,.1);border-color:rgba(57,255,20,.4);color:var(--ok)}
+    .chip.e{background:rgba(255,58,92,.1);border-color:rgba(255,58,92,.4);color:var(--err)}
+    .chip.sep{width:1px;height:32px;border-radius:0;border:none;border-left:1px solid var(--border2);background:transparent;pointer-events:none}
+
+    /* QUESTION CARD */
+    .q-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:cardIn .3s cubic-bezier(.4,0,.2,1);transition:border-color .3s}
+    @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .q-card.c-ok{border-color:rgba(57,255,20,.35)}.q-card.c-err{border-color:rgba(255,58,92,.35)}
+    .q-head{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface2)}
+    .q-badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+    .q-method{font-family:'Fira Code',monospace;font-size:12px;padding:3px 12px;border-radius:20px;border:1px solid;background:var(--mc-bg,rgba(255,255,255,.04));color:var(--mc);border-color:color-mix(in srgb,var(--mc) 35%,transparent);transition:all .3s}
+    .q-body{padding:22px 24px}
+    .q-title{font-family:'Barlow Condensed',sans-serif;font-size:1.45rem;font-weight:800;margin-bottom:14px;line-height:1.2}
+    .code-ctx{background:#0b0b10;border:1px solid var(--border);border-left:3px solid var(--mc);border-radius:6px;padding:14px 18px;margin-bottom:18px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.9;transition:border-color .3s;white-space:pre;overflow-x:auto}
+    .ck{color:#c792ea}.cf{color:#82aaff}.cs{color:#c3e88d}.co{color:#ffcb6b}.cm{color:#3d3d55;font-style:italic}.ct{color:#89ddff}
+    .q-text{font-size:.95rem;font-weight:300;line-height:1.7;color:rgba(238,238,245,.75);margin-bottom:18px}
+    .q-text strong{color:var(--text);font-weight:500}
+    .q-text code{font-family:'Fira Code',monospace;font-size:12px;background:rgba(255,255,255,.07);padding:1px 7px;border-radius:4px;color:#ffcb6b}
+
+    /* INPUT */
+    .input-row{display:flex;gap:10px;margin-bottom:10px}
+    .input-shell{flex:1;display:flex;align-items:center;gap:8px;background:#0b0b10;border:1.5px solid var(--border2);border-radius:8px;padding:0 16px;transition:border-color .25s,box-shadow .25s}
+    .input-shell:focus-within{border-color:var(--mc);box-shadow:0 0 0 3px var(--mc-glow)}
+    .inp-pre{font-family:'Fira Code',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+    .ans-inp{flex:1;background:transparent;border:none;outline:none;font-family:'Fira Code',monospace;font-size:13px;color:var(--text);padding:12px 0;caret-color:var(--mc)}
+    .ans-inp::placeholder{color:var(--dim)}.ans-inp:disabled{opacity:.4}
+    .btn-go{padding:12px 22px;border:none;border-radius:8px;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:800;letter-spacing:1px;cursor:pointer;white-space:nowrap;background:var(--mc);color:#000;transition:opacity .2s,transform .1s;box-shadow:0 3px 14px var(--mc-glow)}
+    .btn-go:hover{opacity:.85}.btn-go:active{transform:scale(.96)}
+
+    /* FEEDBACK */
+    .feedback{display:none;padding:14px 18px;border-radius:8px;font-size:.88rem;line-height:1.7;margin-top:10px;animation:cardIn .25s ease}
+    .feedback.show{display:block}
+    .feedback.ok{background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.2);color:#b8ffc2}
+    .feedback.fail{background:rgba(255,58,92,.06);border:1px solid rgba(255,58,92,.2);color:#ffb8c2}
+    .feedback .fb-head{font-weight:700;margin-bottom:3px;font-size:.93rem}
+    .feedback.ok .fb-head{color:var(--ok)}.feedback.fail .fb-head{color:var(--err)}
+    .feedback code{font-family:'Fira Code',monospace;font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;color:#ffcb6b}
+
+    /* HINT */
+    .btn-hint{background:none;border:1px solid var(--border);color:var(--muted);font-family:'Barlow',sans-serif;font-size:12px;font-weight:500;padding:5px 14px;border-radius:6px;cursor:pointer;margin-top:8px;transition:border-color .2s,color .2s;display:inline-block}
+    .btn-hint:hover{border-color:var(--gold);color:var(--gold)}
+    .hint-box{display:none;margin-top:8px;padding:12px 16px;background:rgba(255,214,10,.05);border:1px solid rgba(255,214,10,.2);border-radius:8px;font-size:.86rem;color:#ffe566;line-height:1.6}
+    .hint-box.show{display:block;animation:cardIn .2s ease}
+
+    /* NEXT */
+    .btn-next{display:none;margin-top:12px;background:transparent;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;padding:10px 28px;border-radius:8px;cursor:pointer;transition:background .2s,border-color .2s}
+    .btn-next:hover{background:var(--surface2);border-color:var(--text)}
+    .btn-next.show{display:inline-block;animation:cardIn .3s ease}
+
+    /* MODULE COMPLETE */
+    #mod-complete{display:none;animation:cardIn .4s ease}
+    #mod-complete.show{display:block}
+    .mc-card{background:var(--surface);border:2px solid var(--mc);border-radius:18px;padding:44px 36px;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 60px var(--mc-glow)}
+    .mc-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--mc) 15%,transparent) 0%,transparent 60%)}
+    .mc-inner{position:relative}
+    .mc-stars{font-size:2rem;letter-spacing:8px;margin-bottom:16px}
+    .mc-tag{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .mc-title{font-family:'Barlow Condensed',sans-serif;font-size:2.4rem;font-weight:900;line-height:1;margin-bottom:6px;color:var(--mc);text-shadow:0 0 30px var(--mc-glow)}
+    .mc-score-row{display:flex;align-items:center;justify-content:center;gap:24px;margin:24px 0;flex-wrap:wrap}
+    .mc-stat{display:flex;flex-direction:column;align-items:center;gap:4px}
+    .mc-num{font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;line-height:1}
+    .mc-num.ok{color:var(--ok)}.mc-num.err{color:var(--err)}.mc-num.xp{color:var(--gold)}
+    .mc-lbl{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+    .mc-msg{font-size:.95rem;color:var(--muted);margin-bottom:28px;font-style:italic;line-height:1.5}
+    .btn-continue{padding:14px 40px;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;cursor:pointer;text-transform:uppercase;background:var(--mc);color:#000;transition:opacity .2s;box-shadow:0 4px 24px var(--mc-glow)}
+    .btn-continue:hover{opacity:.85}
+
+    /* FINAL */
+    #final-screen{display:none;animation:cardIn .5s ease}
+    #final-screen.show{display:block}
+    .final-wrap{background:var(--surface);border:1px solid var(--border2);border-radius:20px;overflow:hidden}
+    .final-banner{background:linear-gradient(135deg,#1a0010,#1a1000,#001a14);padding:40px 36px 32px;text-align:center;border-bottom:1px solid var(--border2);position:relative;overflow:hidden}
+    .final-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(255,214,10,.06),transparent 70%)}
+    .final-trophy{font-size:3.5rem;margin-bottom:12px;position:relative}
+    .final-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(1.8rem,5vw,3rem);font-weight:900;line-height:1;margin-bottom:4px;position:relative}
+    .final-sub{color:var(--muted);font-size:.9rem;position:relative}
+    .final-big-score{font-family:'Barlow Condensed',sans-serif;font-size:clamp(4rem,14vw,7rem);font-weight:900;line-height:1;color:var(--gold);text-shadow:0 0 40px rgba(255,214,10,.5);position:relative}
+    .final-denom{font-size:2.5rem;opacity:.4}
+    .final-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+    .final-cell{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:4px}
+    .fc-mod{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+    .fc-score{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1}
+    .fc-chips{display:flex;gap:4px;margin-top:4px}
+    .fc-chip{width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+    .fc-chip.c{background:rgba(57,255,20,.15);color:var(--ok)}.fc-chip.e{background:rgba(255,58,92,.15);color:var(--err)}
+    .final-actions{padding:28px 36px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn-restart{padding:13px 32px;border-radius:10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--gold);color:#000;border:none;transition:opacity .2s}
+    .btn-restart:hover{opacity:.85}
+
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+    @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.015)}100%{transform:scale(1)}}
+    .shake{animation:shake .3s ease}.pop{animation:pop .3s ease}
+    @media(max-width:560px){.module-map{grid-template-columns:repeat(2,1fr)}.final-grid{grid-template-columns:1fr}.hdr{flex-direction:column}.xp-wrap{max-width:100%;width:100%}}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="game-label">JavaScript Parte 2 · Completar Código</div>
+      <div class="game-title">JS <span>FILL</span></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top"><span class="xp-label">⚡ XP</span><span class="xp-val" id="xp-val">0 / 2000</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="module-map" id="mod-map"></div>
+
+  <div class="prog-strip">
+    <div class="prog-module-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-frac" id="prog-frac">0/20</div>
+  </div>
+
+  <div class="chip-row" id="chip-row"></div>
+  <div id="q-area"></div>
+
+  <div id="mod-complete">
+    <div class="mc-card" id="mc-card">
+      <div class="mc-inner">
+        <div class="mc-stars" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">Módulo Completo</div>
+        <div class="mc-title" id="mc-title">—</div>
+        <div class="mc-score-row">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Corretas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+        <button class="btn-continue" id="btn-continue" onclick="startNextModule()">PRÓXIMO MÓDULO →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-banner">
+        <div class="final-trophy">🏆</div>
+        <div class="final-title">Parte 2 Concluída!</div>
+        <div class="final-sub" id="final-sub">Resultado final</div>
+        <div class="final-big-score"><span id="f-num">0</span><span class="final-denom">/20</span></div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions"><button class="btn-restart" onclick="restart()">↩ Reiniciar</button></div>
+    </div>
+  </div>
+
+</div>
+<script>
+const MODULES = [
+  {
+    id:'tarefas', name:'Lista de Tarefas', icon:'✅',
+    color:'#e63946', glow:'rgba(230,57,70,.25)', bg:'rgba(230,57,70,.1)', bg2:'rgba(230,57,70,.15)',
+    questions:[
+      {
+        method:'createElement',
+        title:'Criar elemento HTML',
+        code:`<span class="cm">// Adicionar novo item à lista de tarefas</span>
+<span class="ck">const</span> <span class="co">li</span> = document.<span class="cf">___</span>(<span class="cs">'li'</span>);
+<span class="co">li</span>.<span class="co">textContent</span> = taskText;`,
+        question:'Para criar um novo elemento <code>&lt;li&gt;</code> dinamicamente via JavaScript, complete o método abaixo:',
+        prefix:'document.',
+        placeholder:"createElement('li')",
+        answers:["createElement('li')","createElement(\"li\")"],
+        hint:'createElement recebe o nome da tag como string: createElement("li"), createElement("div"), etc.',
+        explanation:'<code>createElement(\'li\')</code> cria o elemento na memória, mas ainda não o adiciona ao DOM. É sempre o primeiro passo para criar elementos dinamicamente.'
+      },
+      {
+        method:'appendChild',
+        title:'Inserir na lista',
+        code:`<span class="ck">const</span> <span class="co">li</span> = document.<span class="cf">createElement</span>(<span class="cs">'li'</span>);
+<span class="co">li</span>.<span class="co">textContent</span> = <span class="cs">'Nova tarefa'</span>;
+taskList.<span class="cf">___</span>(<span class="co">li</span>);`,
+        question:'Após criar o <code>&lt;li&gt;</code> e definir seu texto, qual método adiciona o elemento como <strong>filho</strong> da <code>taskList</code>?',
+        prefix:'taskList.',
+        placeholder:"appendChild(li)",
+        answers:["appendChild(li)"],
+        hint:'appendChild insere o elemento como último filho do elemento pai.',
+        explanation:'<code>appendChild(li)</code> — insere o elemento criado no DOM como último filho. Complemento obrigatório do <code>createElement</code>: criar → configurar → appendar.'
+      },
+      {
+        method:'trim()',
+        title:'Limpar espaços extras',
+        code:`<span class="ck">const</span> <span class="co">taskText</span> = taskInput.value.<span class="cf">___</span>();
+<span class="ck">if</span> (taskText !== <span class="cs">''</span>) { <span class="cm">/* adiciona tarefa */</span> }`,
+        question:'Para evitar que tarefas com apenas espaços em branco sejam adicionadas, qual método remove os espaços do início e do fim da string?',
+        prefix:'taskInput.value.',
+        placeholder:"trim()",
+        answers:["trim()"],
+        hint:'trim() remove espaços em branco (e tabs, quebras de linha) do início e do fim de uma string.',
+        explanation:'<code>trim()</code> — essencial na validação. Sem ele, um usuário poderia criar tarefas vazias apertando espaços. Não modifica a string original, retorna uma nova.'
+      },
+      {
+        method:'classList.toggle',
+        title:'Marcar como concluída',
+        code:`<span class="co">li</span>.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, () => {
+  <span class="co">li</span>.classList.<span class="cf">___</span>(<span class="cs">'completed'</span>);
+});`,
+        question:'Ao clicar no item da lista, a classe <code>"completed"</code> deve ser adicionada se não existir e removida se já existir. Complete o método:',
+        prefix:'li.classList.',
+        placeholder:"toggle('completed')",
+        answers:["toggle('completed')","toggle(\"completed\")"],
+        hint:'toggle faz os dois em uma linha: se tem → remove, se não tem → adiciona.',
+        explanation:'<code>classList.toggle(\'completed\')</code> — alternância em uma linha. A classe <code>completed</code> pode aplicar <code>text-decoration: line-through</code> no CSS para riscar visualmente.'
+      },
+      {
+        method:'value = \'\'',
+        title:'Limpar o input após adicionar',
+        code:`taskList.<span class="cf">appendChild</span>(<span class="co">li</span>);
+<span class="cm">// Limpar o campo após adicionar a tarefa</span>
+taskInput.<span class="cf">___</span> = <span class="cs">''</span>;`,
+        question:'Após adicionar a tarefa à lista, o campo de texto deve ser <strong>esvaziado</strong>. Como atribuir uma string vazia ao valor do input?',
+        prefix:'taskInput.',
+        placeholder:"value = ''",
+        answers:["value = ''","value = \"\""],
+        hint:'O campo de texto tem uma propriedade .value que você pode ler e também escrever diretamente.',
+        explanation:'<code>taskInput.value = \'\'</code> — atribuição direta à propriedade <code>value</code>. Simples mas fundamental para UX: sem isso o usuário teria que limpar o campo manualmente a cada tarefa.'
+      },
+    ]
+  },
+  {
+    id:'formulario', name:'Validação Forms', icon:'📋',
+    color:'#f77f00', glow:'rgba(247,127,0,.25)', bg:'rgba(247,127,0,.1)', bg2:'rgba(247,127,0,.15)',
+    questions:[
+      {
+        method:'event.preventDefault()',
+        title:'Bloquear envio padrão',
+        code:`form.<span class="cf">addEventListener</span>(<span class="cs">'submit'</span>, (<span class="co">event</span>) => {
+  <span class="co">event</span>.<span class="cf">___</span>();
+  <span class="cm">// validar campos aqui...</span>
+});`,
+        question:'O comportamento padrão de um formulário é enviar os dados e <strong>recarregar a página</strong>. Qual método bloqueia esse comportamento para você controlar o envio via JS?',
+        prefix:'event.',
+        placeholder:"preventDefault()",
+        answers:["preventDefault()"],
+        hint:'preventDefault() previne o comportamento padrão do evento — no submit, isso impede o recarregamento.',
+        explanation:'<code>event.preventDefault()</code> — bloqueia o comportamento padrão. No submit, evita o recarregamento. No clique de um link, evita a navegação. Sempre o primeiro passo em formulários controlados por JS.'
+      },
+      {
+        method:'.includes()',
+        title:'Validar formato de e-mail',
+        code:`<span class="ck">if</span> (email === <span class="cs">''</span> || !email.<span class="cf">___</span>(<span class="cs">'@'</span>)) {
+  emailError.textContent = <span class="cs">'E-mail inválido.'</span>;
+  isValid = <span class="ck">false</span>;
+}`,
+        question:'Para verificar se o e-mail contém o caractere <code>@</code>, qual método de string você usa?',
+        prefix:"!email.",
+        placeholder:"includes('@')",
+        answers:["includes('@')","includes(\"@\")"],
+        hint:'includes() verifica se uma string contém outra string, retornando true ou false.',
+        explanation:'<code>includes(\'@\')</code> — retorna <code>true</code> se a string contém <code>\'@\'</code>. Combinado com <code>!</code> na condição, detecta e-mails inválidos. Uma validação simples mas eficaz para feedback imediato.'
+      },
+      {
+        method:'.length',
+        title:'Validar tamanho da senha',
+        code:`<span class="ck">if</span> (password.<span class="cf">___</span> < <span class="cs">6</span>) {
+  passwordError.textContent = <span class="cs">'Mínimo 6 caracteres.'</span>;
+  isValid = <span class="ck">false</span>;
+}`,
+        question:'Para verificar se a senha tem pelo menos 6 caracteres, qual propriedade da string retorna seu tamanho?',
+        prefix:'password.',
+        placeholder:"length",
+        answers:["length"],
+        hint:'É uma propriedade, não um método — não usa parênteses. Funciona em strings e arrays.',
+        explanation:'<code>password.length</code> — retorna o número de caracteres. Atenção: é uma <strong>propriedade</strong>, não um método (sem parênteses). Funciona em strings, arrays e NodeLists.'
+      },
+      {
+        method:'textContent = \'\'',
+        title:'Limpar mensagem de erro',
+        code:`} <span class="ck">else</span> {
+  <span class="cm">// Campo válido — apaga a mensagem de erro anterior</span>
+  document.<span class="cf">querySelector</span>(<span class="cs">'#nameError'</span>).<span class="co">___</span> = <span class="cs">''</span>;
+}`,
+        question:'Quando o campo é preenchido corretamente, a mensagem de erro anterior deve ser apagada. Como zerar o texto do span de erro?',
+        prefix:"nameError.",
+        placeholder:"textContent = ''",
+        answers:["textContent = ''","textContent = \"\""],
+        hint:'A propriedade que define o conteúdo de texto de um elemento é textContent — você pode ler e escrever nela.',
+        explanation:'<code>textContent = \'\'</code> — limpa o texto do elemento sem alterar o HTML interno. Diferente de <code>innerHTML</code>, o <code>textContent</code> é mais seguro pois não interpreta tags.'
+      },
+      {
+        method:'form.reset()',
+        title:'Resetar formulário após sucesso',
+        code:`<span class="ck">if</span> (isValid) {
+  alert(<span class="cs">'Cadastro realizado!'</span>);
+  <span class="co">form</span>.<span class="cf">___</span>();
+}`,
+        question:'Após validar e confirmar o envio com sucesso, qual método do elemento <code>form</code> limpa todos os campos de uma só vez?',
+        prefix:'form.',
+        placeholder:"reset()",
+        answers:["reset()"],
+        hint:'O próprio elemento form tem um método nativo para limpar todos os seus campos.',
+        explanation:'<code>form.reset()</code> — método nativo do elemento form que restaura todos os campos para os valores padrão (geralmente vazio). Muito mais prático que limpar campo por campo manualmente.'
+      },
+    ]
+  },
+  {
+    id:'erros', name:'Try/Catch & Async', icon:'⚡',
+    color:'#7b2d8b', glow:'rgba(123,45,139,.3)', bg:'rgba(123,45,139,.1)', bg2:'rgba(123,45,139,.15)',
+    questions:[
+      {
+        method:'throw new Error()',
+        title:'Lançar erro personalizado',
+        code:`<span class="ck">if</span> (num2 === <span class="cs">0</span>) {
+  <span class="ck">throw</span> <span class="ck">new</span> <span class="cf">___</span>(<span class="cs">'Divisão por zero não é permitida.'</span>);
+}`,
+        question:'Dentro de um bloco <code>try</code>, como você <strong>lança um erro personalizado</strong> com uma mensagem específica?',
+        prefix:'throw new ',
+        placeholder:"Error('Divisão por zero não é permitida.')",
+        answers:["Error('Divisão por zero não é permitida.')","Error(\"Divisão por zero não é permitida.\")"],
+        hint:'O construtor Error recebe a mensagem como string. Combine com throw para lançar o erro.',
+        explanation:'<code>throw new Error(\'mensagem\')</code> — cria e lança um erro personalizado que o bloco <code>catch</code> vai capturar. O <code>error.message</code> no catch terá o texto que você passou.'
+      },
+      {
+        method:'catch (error)',
+        title:'Capturar o erro',
+        code:`<span class="ck">try</span> {
+  <span class="cm">// código que pode falhar</span>
+} <span class="ck">___</span> (<span class="co">error</span>) {
+  resultElement.textContent = <span class="cs">\`Erro: \${error.message}\`</span>;
+}`,
+        question:'Qual palavra-chave inicia o bloco que <strong>captura</strong> erros lançados no <code>try</code>?',
+        prefix:'} ',
+        placeholder:"catch (error)",
+        answers:["catch (error)","catch(error)"],
+        hint:'É a segunda parte do try/catch. Recebe o objeto de erro como parâmetro.',
+        explanation:'<code>catch (error)</code> — captura qualquer erro lançado no bloco <code>try</code>. O parâmetro <code>error</code> tem propriedades como <code>error.message</code> e <code>error.name</code> para identificar o problema.'
+      },
+      {
+        method:'finally',
+        title:'Bloco que sempre executa',
+        code:`} <span class="ck">catch</span> (<span class="co">error</span>) {
+  console.<span class="cf">log</span>(<span class="co">error</span>);
+} <span class="ck">___</span> {
+  console.<span class="cf">log</span>(<span class="cs">'Operação concluída.'</span>);
+}`,
+        question:'Qual bloco do <code>try/catch</code> é <strong>sempre executado</strong>, independentemente de ter ocorrido erro ou não?',
+        prefix:'} ',
+        placeholder:"finally",
+        answers:["finally"],
+        hint:'É o terceiro bloco opcional do try/catch. Ótimo para limpar recursos, esconder loading, etc.',
+        explanation:'<code>finally</code> — executa sempre, com ou sem erro. Ideal para código de limpeza como: esconder um spinner de loading, fechar conexões, ou executar lógica que não pode ser ignorada.'
+      },
+      {
+        method:'async function',
+        title:'Declarar função assíncrona',
+        code:`document.<span class="cf">getElementById</span>(<span class="cs">'fetchUser'</span>)
+  .<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, <span class="ck">___</span> <span class="ck">function</span> () {
+    <span class="ck">const</span> <span class="co">res</span> = <span class="ck">await</span> fetch(url);
+  });`,
+        question:'Para usar <code>await</code> dentro de uma função, ela precisa ser declarada com uma palavra-chave especial. Qual é ela?',
+        prefix:'',
+        placeholder:"async",
+        answers:["async"],
+        hint:'É a palavra-chave que transforma uma função em assíncrona, habilitando o uso de await dentro dela.',
+        explanation:'<code>async</code> — declara a função como assíncrona. Sem ela, o <code>await</code> causa um erro de sintaxe. Funções <code>async</code> sempre retornam uma Promise, mesmo que implicitamente.'
+      },
+      {
+        method:'response.ok',
+        title:'Verificar sucesso da resposta',
+        code:`<span class="ck">const</span> <span class="co">response</span> = <span class="ck">await</span> fetch(url);
+<span class="ck">if</span> (!response.<span class="cf">___</span>) {
+  <span class="ck">throw</span> <span class="ck">new</span> Error(<span class="cs">'Erro ao buscar dados.'</span>);
+}`,
+        question:'O <code>fetch</code> não rejeita a Promise em erros HTTP (404, 500). Qual propriedade da resposta você checa para saber se foi bem-sucedida?',
+        prefix:'!response.',
+        placeholder:"ok",
+        answers:["ok"],
+        hint:'É uma propriedade boolean da resposta que é true para status 200-299 e false para qualquer outro.',
+        explanation:'<code>response.ok</code> — retorna <code>true</code> se o status HTTP está entre 200 e 299. Como o <code>fetch</code> não rejeita para erros 4xx/5xx, checar <code>response.ok</code> é obrigatório para tratar erros de servidor.'
+      },
+    ]
+  },
+  {
+    id:'avancado', name:'DOM Avançado', icon:'🎛️',
+    color:'#2dc653', glow:'rgba(45,198,83,.25)', bg:'rgba(45,198,83,.1)', bg2:'rgba(45,198,83,.15)',
+    questions:[
+      {
+        method:'classList.toggle — menu',
+        title:'Menu Hamburguer',
+        code:`menuIcon.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, () => {
+  navList.classList.<span class="cf">___</span>(<span class="cs">'active'</span>);
+});`,
+        question:'Ao clicar no ícone hamburguer, o menu deve aparecer/desaparecer alternando a classe <code>"active"</code> na <code>navList</code>. Complete:',
+        prefix:'navList.classList.',
+        placeholder:"toggle('active')",
+        answers:["toggle('active')","toggle(\"active\")"],
+        hint:'O mesmo toggle que usamos para tarefas — funciona igual em qualquer elemento.',
+        explanation:'<code>classList.toggle(\'active\')</code> — padrão universal para menus hamburguer. O CSS define o que a classe <code>active</code> faz (mostrar/esconder), e o JS apenas a adiciona/remove.'
+      },
+      {
+        method:'querySelectorAll',
+        title:'Selecionar todos os slides',
+        code:`<span class="ck">const</span> <span class="co">slides</span> = document.<span class="cf">___</span>(<span class="cs">'.carousel-slide'</span>);
+<span class="cm">// retorna NodeList com todos os slides</span>`,
+        question:'No carrossel, precisamos de <strong>todos</strong> os elementos com a classe <code>".carousel-slide"</code>. Qual método retorna uma NodeList com todos eles?',
+        prefix:'document.',
+        placeholder:"querySelectorAll('.carousel-slide')",
+        answers:["querySelectorAll('.carousel-slide')","querySelectorAll(\".carousel-slide\")"],
+        hint:'querySelectorAll retorna TODOS os elementos que batem com o seletor, não só o primeiro.',
+        explanation:'<code>querySelectorAll(\'.carousel-slide\')</code> — retorna uma NodeList com todos os slides. Diferente de <code>querySelector</code> que retorna apenas o primeiro encontrado.'
+      },
+      {
+        method:'setInterval',
+        title:'Autoplay do carrossel',
+        code:`<span class="ck">function</span> <span class="cf">startAutoSlide</span>() {
+  autoSlideInterval = <span class="cf">___</span>(nextSlide, <span class="cs">5000</span>);
+}`,
+        question:'Para avançar o carrossel automaticamente a cada 5 segundos, qual função executa um callback repetidamente em um intervalo de tempo?',
+        prefix:'',
+        placeholder:"setInterval(nextSlide, 5000)",
+        answers:["setInterval(nextSlide, 5000)","setInterval(nextSlide,5000)"],
+        hint:'setInterval executa a função repetidamente. O contrário é clearInterval, que para a execução.',
+        explanation:'<code>setInterval(nextSlide, 5000)</code> — executa <code>nextSlide</code> a cada 5000ms (5s). Sempre guarde o retorno em uma variável para poder cancelar depois com <code>clearInterval()</code>.'
+      },
+      {
+        method:'clearInterval',
+        title:'Pausar o autoplay',
+        code:`<span class="ck">function</span> <span class="cf">stopAutoSlide</span>() {
+  <span class="cf">___</span>(autoSlideInterval);
+}`,
+        question:'Quando o usuário clica nos botões de navegação, o timer automático deve ser <strong>cancelado</strong> antes de reiniciar. Qual função cancela um intervalo?',
+        prefix:'',
+        placeholder:"clearInterval(autoSlideInterval)",
+        answers:["clearInterval(autoSlideInterval)"],
+        hint:'É o par do setInterval. Recebe o identificador retornado pelo setInterval para saber qual cancelar.',
+        explanation:'<code>clearInterval(autoSlideInterval)</code> — cancela o intervalo usando o ID retornado pelo <code>setInterval</code>. Sem isso, múltiplos cliques criariam múltiplos timers simultâneos, acelerando o carrossel.'
+      },
+      {
+        method:'classList.toggle — slide',
+        title:'Alternar slide ativo',
+        code:`slides.<span class="cf">forEach</span>((<span class="co">slide</span>, <span class="co">i</span>) => {
+  slide.classList.<span class="cf">___</span>(<span class="cs">'active'</span>, i === index);
+});`,
+        question:'No carrossel, <code>classList.toggle</code> aceita um segundo argumento para <strong>forçar</strong> o estado. O que esse segundo argumento faz?',
+        prefix:'slide.classList.',
+        placeholder:"toggle('active', i === index)",
+        answers:["toggle('active', i === index)","toggle(\"active\", i === index)"],
+        hint:"O segundo argumento é um boolean: true força adicionar, false força remover — sem precisar de if/else.",
+        explanation:'<code>classList.toggle(\'active\', i === index)</code> — o segundo argumento é o "force flag": <code>true</code> adiciona a classe, <code>false</code> remove. Substitui um <code>if/else</code> com add/remove em uma única linha elegante.'
+      },
+    ]
+  },
+];
+
+// ── ESTADO ──
+let modIdx=0, qIdx=0, totalXP=0;
+const MAX_XP=2000;
+const results=[[], [], [], []];
+let phase='quiz';
+
+function applyTheme(mod) {
+  const r = document.documentElement.style;
+  r.setProperty('--mc', mod.color);
+  r.setProperty('--mc-glow', mod.glow);
+  r.setProperty('--mc-dot', mod.color);
+  r.setProperty('--mc-btn', mod.color);
+}
+
+function renderModMap() {
+  document.getElementById('mod-map').innerHTML = MODULES.map((m,i)=>{
+    const done = i < modIdx || (phase==='final' && i <= modIdx);
+    const active = i===modIdx && phase==='quiz';
+    const cls = done?'done':active?'active':'';
+    const sc  = done?`${results[i].filter(Boolean).length}/5 ✓`:active?'EM JOGO':'—';
+    return `<div class="mod-card ${cls}" style="--mc:${m.color}">
+      <div class="mod-lock">${i>modIdx?'🔒':''}</div>
+      <div class="mod-icon">${m.icon}</div>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-score">${sc}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChips() {
+  const row = document.getElementById('chip-row');
+  row.innerHTML='';
+  MODULES.forEach((m,mi)=>{
+    if(mi>0){const s=document.createElement('div');s.className='chip sep';row.appendChild(s);}
+    m.questions.forEach((_,qi)=>{
+      const gi=mi*5+qi, d=document.createElement('div');
+      d.className='chip'; d.id=`chip-${gi}`; d.textContent=qi+1;
+      const res=results[mi][qi];
+      if(res===true) d.classList.add('c');
+      if(res===false) d.classList.add('e');
+      if(mi===modIdx&&qi===qIdx&&phase==='quiz'){d.style.borderColor=MODULES[mi].color;d.style.color=MODULES[mi].color;}
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi,qi,ok){
+  const d=document.getElementById(`chip-${mi*5+qi}`);
+  if(!d)return;
+  d.classList.remove('c','e'); d.classList.add(ok?'c':'e');
+  d.style.borderColor=''; d.style.color='';
+  d.textContent=ok?'✓':'✗';
+}
+
+function renderProg(){
+  const mod=MODULES[Math.min(modIdx,MODULES.length-1)];
+  const total=modIdx*5+qIdx;
+  document.getElementById('prog-name').textContent=mod.name;
+  document.getElementById('prog-frac').textContent=`${Math.min(total,20)}/20`;
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},(_,i)=>{
+    const cls=i<qIdx?'done':i===qIdx?'active':'';
+    return `<div class="pdot ${cls}"></div>`;
+  }).join('');
+}
+
+function addXP(v){
+  totalXP=Math.min(totalXP+v,MAX_XP);
+  document.getElementById('xp-fill').style.width=(totalXP/MAX_XP*100)+'%';
+  document.getElementById('xp-val').textContent=`${totalXP} / ${MAX_XP}`;
+}
+
+function renderQuestion(){
+  const mod=MODULES[modIdx], q=mod.questions[qIdx];
+  applyTheme(mod); renderModMap(); renderChips(); renderProg();
+  const pfxHtml = q.prefix ? `<span class="inp-pre">${q.prefix}</span>` : `<span class="inp-pre">→</span>`;
+  document.getElementById('q-area').innerHTML=`
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-badge">Módulo ${modIdx+1} · Questão ${qIdx+1}/5</span>
+        <span class="q-method">${q.method}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        <div class="code-ctx">${q.code}</div>
+        <p class="q-text">${q.question}</p>
+        <div class="input-row">
+          <div class="input-shell">
+            ${pfxHtml}
+            <input class="ans-inp" id="ans" type="text" placeholder="${q.placeholder}"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+          </div>
+          <button class="btn-go" onclick="checkAnswer()">ENTER ↵</button>
+        </div>
+        <button class="btn-hint" onclick="toggleHint()">💡 Dica</button>
+        <div class="hint-box" id="hint-box">${q.hint}</div>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advanceQuestion()">
+          ${qIdx<4?'Próxima →':'Finalizar Módulo →'}
+        </button>
+      </div>
+    </div>`;
+  const inp=document.getElementById('ans');
+  inp.focus();
+  setTimeout(() => { inp.placeholder = ''; }, 5000); // 👈 Tempo da dica (Depois de 3s ela some)
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter')checkAnswer();});
+}
+
+function checkAnswer(){
+  const inp=document.getElementById('ans'), fb=document.getElementById('feedback'), btn=document.getElementById('btn-next');
+  if(btn.classList.contains('show'))return;
+  const val=inp.value.trim(); if(!val)return;
+  const q=MODULES[modIdx].questions[qIdx];
+  const ok=q.answers.includes(val);
+  results[modIdx][qIdx]=ok; markChip(modIdx,qIdx,ok);
+  const card=document.getElementById('active-card');
+  if(ok){
+    addXP(80); card.classList.add('c-ok','pop'); setTimeout(()=>card.classList.remove('pop'),300);
+    fb.className='feedback ok show';
+    fb.innerHTML=`<div class="fb-head">✓ Correto! +80 XP</div>${q.explanation}`;
+  } else {
+    card.classList.add('c-err','shake'); setTimeout(()=>card.classList.remove('shake'),300);
+    const correct=q.prefix?`${q.prefix}${q.answers[0]}`:q.answers[0];
+    fb.className='feedback fail show';
+    fb.innerHTML=`<div class="fb-head">✗ Resposta incorreta</div>Correto: <code>${correct}</code><br><br>${q.explanation}`;
+  }
+  inp.disabled=true; btn.classList.add('show');
+}
+
+function toggleHint(){document.getElementById('hint-box').classList.toggle('show');}
+
+function advanceQuestion(){
+  if(qIdx<4){qIdx++;renderQuestion();}
+  else{showModComplete();}
+}
+
+function showModComplete(){
+  phase='mod-complete';
+  document.getElementById('q-area').innerHTML='';
+  const mod=MODULES[modIdx], res=results[modIdx], ok=res.filter(Boolean).length, pct=ok/5;
+  applyTheme(mod);
+  document.getElementById('mc-stars').textContent=pct===1?'⭐⭐⭐':pct>=.6?'⭐⭐':'⭐';
+  document.getElementById('mc-title').textContent=mod.name;
+  document.getElementById('mc-ok').textContent=ok;
+  document.getElementById('mc-err').textContent=5-ok;
+  document.getElementById('mc-xp').textContent=`+${ok*80}`;
+  document.getElementById('mc-msg').textContent=[[1,'Perfeito! Módulo dominado.'],[.8,'Muito bem!'],[.6,'Bom progresso — revise os erros.'],[0,'Continue! Cada erro é aprendizado.']].find(([t])=>pct>=t)[1];
+  const isLast=modIdx===MODULES.length-1;
+  document.getElementById('btn-continue').textContent=isLast?'VER RESULTADO FINAL →':'PRÓXIMO MÓDULO →';
+  document.getElementById('mod-complete').classList.add('show');
+  renderModMap(); renderChips();
+}
+
+function startNextModule(){
+  document.getElementById('mod-complete').classList.remove('show');
+  phase='quiz';
+  if(modIdx===MODULES.length-1){showFinal();return;}
+  modIdx++; qIdx=0; renderQuestion();
+}
+
+function showFinal(){
+  phase='final';
+  document.getElementById('q-area').innerHTML='';
+  const totalOk=results.flat().filter(Boolean).length;
+  document.getElementById('f-num').textContent=totalOk;
+  const pct=totalOk/20;
+  document.getElementById('final-sub').textContent=[[1,'🏆 Perfeito!'],[.85,'🔥 Excelente!'],[.7,'👍 Muito bom!'],[.5,'💪 Bom início!'],[0,'📚 Continue praticando!']].find(([t])=>pct>=t)[1];
+  document.getElementById('final-grid').innerHTML=MODULES.map((m,i)=>{
+    const res=results[i], ok=res.filter(Boolean).length;
+    const color=ok===5?'var(--ok)':ok>=3?m.color:'var(--err)';
+    const chips=res.map(r=>`<div class="fc-chip ${r?'c':'e'}">${r?'✓':'✗'}</div>`).join('');
+    return `<div class="final-cell"><div class="fc-mod" style="color:${m.color}">${m.icon} ${m.name}</div><div class="fc-score" style="color:${color}">${ok}/5</div><div class="fc-chips">${chips}</div></div>`;
+  }).join('');
+  document.getElementById('final-screen').classList.add('show');
+  modIdx=MODULES.length; renderModMap(); renderChips();
+  document.getElementById('prog-name').textContent='Completo';
+  document.getElementById('prog-frac').textContent='20/20';
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},()=>'<div class="pdot done"></div>').join('');
+}
+
+function restart(){
+  modIdx=0;qIdx=0;totalXP=0;phase='quiz';
+  results.forEach(r=>r.length=0);
+  document.getElementById('xp-fill').style.width='0%';
+  document.getElementById('xp-val').textContent='0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  applyTheme(MODULES[0]); renderQuestion();
+}
+
+applyTheme(MODULES[0]);
+renderQuestion();
+</script>
+</body>
+</html>

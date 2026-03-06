@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JS Quiz Pt.2 — Múltipla Escolha</title>
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;800;900&family=Barlow:wght@300;400;500&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#0e0e12;--surface:#16161d;--surface2:#1e1e28;
+      --border:#2a2a3a;--border2:#383850;
+      --ok:#39ff14;--err:#ff3a5c;--gold:#ffd60a;
+      --text:#eeeef5;--muted:#6b6b88;--dim:#3a3a52;
+      --mc:#e63946;--mc-glow:rgba(230,57,70,.25);--mc-dot:#e63946;--mc-btn:#e63946;
+    }
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+    body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.4}
+    .app{position:relative;z-index:1;max-width:780px;margin:0 auto;padding:24px 20px 80px}
+
+    .hdr{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+    .hdr-left{display:flex;flex-direction:column;gap:4px}
+    .game-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--muted)}
+    .game-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(1.8rem,5vw,2.8rem);font-weight:900;line-height:1;letter-spacing:-1px}
+    .game-title span{color:var(--gold)}
+    .xp-wrap{min-width:220px;flex:1;max-width:340px}
+    .xp-top{display:flex;justify-content:space-between;align-items:baseline;font-size:11px;margin-bottom:6px}
+    .xp-label{font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:2px;color:var(--gold);font-size:12px}
+    .xp-val{font-family:'Fira Code',monospace;font-size:11px;color:var(--muted)}
+    .xp-track{height:8px;background:var(--dim);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+    .xp-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),#ff9f00);box-shadow:0 0 10px rgba(255,214,10,.4);transition:width .6s cubic-bezier(.4,0,.2,1);width:0%}
+
+    .module-map{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:28px}
+    .mod-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 10px;text-align:center;position:relative;overflow:hidden;transition:border-color .3s}
+    .mod-card::before{content:'';position:absolute;inset:0;background:var(--mc,transparent);opacity:.06;transition:opacity .3s}
+    .mod-card.active{border-color:var(--mc)}.mod-card.active::before{opacity:.12}
+    .mod-card.done{border-color:rgba(57,255,20,.3)}.mod-card.done::before{background:var(--ok);opacity:.07}
+    .mod-icon{font-size:1.4rem;margin-bottom:4px;filter:grayscale(1);opacity:.4;transition:all .3s}
+    .mod-card.active .mod-icon,.mod-card.done .mod-icon{filter:grayscale(0);opacity:1}
+    .mod-name{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);transition:color .3s}
+    .mod-card.active .mod-name{color:var(--mc)}.mod-card.done .mod-name{color:var(--ok)}
+    .mod-score{font-family:'Fira Code',monospace;font-size:10px;color:var(--dim);margin-top:3px;transition:color .3s}
+    .mod-card.done .mod-score{color:var(--ok)}
+    .mod-lock{position:absolute;top:6px;right:8px;font-size:10px;color:var(--dim)}
+    .mod-card.active .mod-lock,.mod-card.done .mod-lock{display:none}
+
+    .prog-strip{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:24px;display:flex;align-items:center;gap:16px}
+    .prog-module-name{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:1rem;letter-spacing:1px;min-width:130px;color:var(--mc);transition:color .4s}
+    .prog-dots{display:flex;gap:6px;flex:1}
+    .pdot{flex:1;height:5px;border-radius:3px;background:var(--dim);transition:background .4s,box-shadow .4s}
+    .pdot.done{background:var(--mc-dot)}.pdot.active{background:var(--mc-dot);box-shadow:0 0 6px var(--mc-dot);opacity:.6}
+    .prog-frac{font-family:'Fira Code',monospace;font-size:12px;color:var(--muted);white-space:nowrap}
+
+    .chip-row{display:flex;gap:6px;margin-bottom:22px;flex-wrap:wrap}
+    .chip{width:32px;height:32px;border-radius:6px;border:1px solid var(--border);background:var(--surface);display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:var(--muted);transition:all .3s}
+    .chip.c{background:rgba(57,255,20,.1);border-color:rgba(57,255,20,.4);color:var(--ok)}
+    .chip.e{background:rgba(255,58,92,.1);border-color:rgba(255,58,92,.4);color:var(--err)}
+    .chip.sep{width:1px;height:32px;border-radius:0;border:none;border-left:1px solid var(--border2);background:transparent;pointer-events:none}
+
+    .q-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;animation:cardIn .3s cubic-bezier(.4,0,.2,1);transition:border-color .3s}
+    @keyframes cardIn{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+    .q-card.c-ok{border-color:rgba(57,255,20,.35)}.q-card.c-err{border-color:rgba(255,58,92,.35)}
+    .q-head{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;border-bottom:1px solid var(--border);background:var(--surface2)}
+    .q-badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+    .q-tag{font-family:'Fira Code',monospace;font-size:12px;padding:3px 12px;border-radius:20px;border:1px solid color-mix(in srgb,var(--mc) 40%,transparent);background:color-mix(in srgb,var(--mc) 10%,transparent);color:var(--mc);transition:all .3s}
+    .q-body{padding:22px 24px}
+    .q-title{font-family:'Barlow Condensed',sans-serif;font-size:1.4rem;font-weight:800;margin-bottom:12px;line-height:1.2}
+    .code-ctx{background:#0b0b10;border:1px solid var(--border);border-left:3px solid var(--mc);border-radius:6px;padding:14px 18px;margin-bottom:16px;font-family:'Fira Code',monospace;font-size:12.5px;line-height:1.9;transition:border-color .3s;white-space:pre;overflow-x:auto}
+    .ck{color:#c792ea}.cf{color:#82aaff}.cs{color:#c3e88d}.co{color:#ffcb6b}.cm{color:#3d3d55;font-style:italic}.ct{color:#89ddff}
+    .q-text{font-size:.95rem;font-weight:300;line-height:1.7;color:rgba(238,238,245,.75);margin-bottom:20px}
+    .q-text strong{color:var(--text);font-weight:500}
+    .q-text code{font-family:'Fira Code',monospace;font-size:12px;background:rgba(255,255,255,.07);padding:1px 7px;border-radius:4px;color:#ffcb6b}
+
+    .options{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+    .opt{display:flex;align-items:center;gap:14px;padding:13px 18px;border-radius:10px;border:1.5px solid var(--border2);background:var(--surface2);cursor:pointer;transition:border-color .2s,background .2s,transform .1s;user-select:none}
+    .opt:hover:not(.disabled){border-color:var(--mc);background:color-mix(in srgb,var(--mc) 8%,var(--surface2))}
+    .opt.selected:not(.disabled){border-color:var(--mc);background:color-mix(in srgb,var(--mc) 12%,var(--surface2));box-shadow:0 0 0 3px var(--mc-glow)}
+    .opt.disabled{cursor:default;pointer-events:none}
+    .opt.correct{border-color:var(--ok)!important;background:rgba(57,255,20,.08)!important;box-shadow:0 0 0 3px rgba(57,255,20,.12)!important}
+    .opt.wrong{border-color:var(--err)!important;background:rgba(255,58,92,.08)!important}
+    .opt.reveal-correct{border-color:rgba(57,255,20,.4)!important;background:rgba(57,255,20,.05)!important}
+    .opt-letter{width:28px;height:28px;border-radius:6px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;background:var(--dim);color:var(--muted);border:1px solid var(--border2);transition:background .2s,color .2s,border-color .2s}
+    .opt.selected:not(.disabled) .opt-letter{background:var(--mc);color:#000;border-color:var(--mc)}
+    .opt.correct .opt-letter{background:var(--ok)!important;color:#000!important;border-color:var(--ok)!important}
+    .opt.wrong .opt-letter{background:var(--err)!important;color:#fff!important;border-color:var(--err)!important}
+    .opt.reveal-correct .opt-letter{background:rgba(57,255,20,.3)!important;color:var(--ok)!important;border-color:var(--ok)!important}
+    .opt-text{font-size:.92rem;line-height:1.4;flex:1}
+    .opt-text code{font-family:'Fira Code',monospace;font-size:12px;background:rgba(255,255,255,.07);padding:1px 6px;border-radius:4px;color:#ffcb6b}
+    .opt-check{font-size:16px;margin-left:auto;opacity:0;transition:opacity .2s}
+    .opt.correct .opt-check,.opt.wrong .opt-check,.opt.reveal-correct .opt-check{opacity:1}
+
+    .btn-confirm{width:100%;padding:13px;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;cursor:pointer;text-transform:uppercase;background:var(--mc);color:#000;transition:opacity .2s,transform .1s;margin-bottom:10px;box-shadow:0 3px 14px var(--mc-glow);opacity:.4}
+    .btn-confirm.ready{opacity:1}.btn-confirm:disabled{cursor:default;opacity:.3}
+
+    .feedback{display:none;padding:14px 18px;border-radius:8px;font-size:.88rem;line-height:1.7;margin-top:2px;animation:cardIn .25s ease}
+    .feedback.show{display:block}
+    .feedback.ok{background:rgba(57,255,20,.06);border:1px solid rgba(57,255,20,.2);color:#b8ffc2}
+    .feedback.fail{background:rgba(255,58,92,.06);border:1px solid rgba(255,58,92,.2);color:#ffb8c2}
+    .feedback .fb-head{font-weight:700;margin-bottom:3px;font-size:.93rem}
+    .feedback.ok .fb-head{color:var(--ok)}.feedback.fail .fb-head{color:var(--err)}
+    .feedback code{font-family:'Fira Code',monospace;font-size:12px;background:rgba(255,255,255,.08);padding:1px 6px;border-radius:4px;color:#ffcb6b}
+
+    .btn-next{display:none;width:100%;padding:12px;border:1.5px solid var(--border2);background:transparent;color:var(--text);font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;border-radius:10px;cursor:pointer;transition:background .2s,border-color .2s;margin-top:8px}
+    .btn-next:hover{background:var(--surface2);border-color:var(--text)}
+    .btn-next.show{display:block;animation:cardIn .3s ease}
+
+    #mod-complete{display:none;animation:cardIn .4s ease}
+    #mod-complete.show{display:block}
+    .mc-card{background:var(--surface);border:2px solid var(--mc);border-radius:18px;padding:44px 36px;text-align:center;position:relative;overflow:hidden;box-shadow:0 0 60px var(--mc-glow)}
+    .mc-card::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,color-mix(in srgb,var(--mc) 15%,transparent) 0%,transparent 60%)}
+    .mc-inner{position:relative}
+    .mc-stars{font-size:2rem;letter-spacing:8px;margin-bottom:16px}
+    .mc-tag{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+    .mc-title{font-family:'Barlow Condensed',sans-serif;font-size:2.4rem;font-weight:900;line-height:1;margin-bottom:6px;color:var(--mc);text-shadow:0 0 30px var(--mc-glow)}
+    .mc-score-row{display:flex;align-items:center;justify-content:center;gap:24px;margin:24px 0;flex-wrap:wrap}
+    .mc-stat{display:flex;flex-direction:column;align-items:center;gap:4px}
+    .mc-num{font-family:'Barlow Condensed',sans-serif;font-size:2.8rem;font-weight:900;line-height:1}
+    .mc-num.ok{color:var(--ok)}.mc-num.err{color:var(--err)}.mc-num.xp{color:var(--gold)}
+    .mc-lbl{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+    .mc-msg{font-size:.95rem;color:var(--muted);margin-bottom:28px;font-style:italic;line-height:1.5}
+    .btn-continue{padding:14px 40px;border:none;border-radius:10px;font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2px;cursor:pointer;text-transform:uppercase;background:var(--mc);color:#000;transition:opacity .2s;box-shadow:0 4px 24px var(--mc-glow)}
+    .btn-continue:hover{opacity:.85}
+
+    #final-screen{display:none;animation:cardIn .5s ease}
+    #final-screen.show{display:block}
+    .final-wrap{background:var(--surface);border:1px solid var(--border2);border-radius:20px;overflow:hidden}
+    .final-banner{background:linear-gradient(135deg,#1a0010,#1a1000,#001a14);padding:40px 36px 32px;text-align:center;border-bottom:1px solid var(--border2);position:relative;overflow:hidden}
+    .final-banner::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 100%,rgba(255,214,10,.06),transparent 70%)}
+    .final-trophy{font-size:3.5rem;margin-bottom:12px;position:relative}
+    .final-title{font-family:'Barlow Condensed',sans-serif;font-size:clamp(1.8rem,5vw,3rem);font-weight:900;line-height:1;margin-bottom:4px;position:relative}
+    .final-sub{color:var(--muted);font-size:.9rem;position:relative}
+    .final-big-score{font-family:'Barlow Condensed',sans-serif;font-size:clamp(4rem,14vw,7rem);font-weight:900;line-height:1;color:var(--gold);text-shadow:0 0 40px rgba(255,214,10,.5);position:relative}
+    .final-denom{font-size:2.5rem;opacity:.4}
+    .final-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1px;background:var(--border);border-bottom:1px solid var(--border)}
+    .final-cell{background:var(--surface);padding:20px 24px;display:flex;flex-direction:column;gap:4px}
+    .fc-mod{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+    .fc-score{font-family:'Barlow Condensed',sans-serif;font-size:1.6rem;font-weight:900;line-height:1}
+    .fc-chips{display:flex;gap:4px;margin-top:4px}
+    .fc-chip{width:18px;height:18px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700}
+    .fc-chip.c{background:rgba(57,255,20,.15);color:var(--ok)}.fc-chip.e{background:rgba(255,58,92,.15);color:var(--err)}
+    .final-actions{padding:28px 36px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+    .btn-restart{padding:13px 32px;border-radius:10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:800;letter-spacing:1px;text-transform:uppercase;background:var(--gold);color:#000;border:none;transition:opacity .2s}
+    .btn-restart:hover{opacity:.85}
+
+    @keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-5px)}40%,80%{transform:translateX(5px)}}
+    @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.02)}100%{transform:scale(1)}}
+    .shake{animation:shake .3s ease}.pop{animation:pop .3s ease}
+    @media(max-width:560px){.module-map{grid-template-columns:repeat(2,1fr)}.final-grid{grid-template-columns:1fr}.hdr{flex-direction:column}.xp-wrap{max-width:100%;width:100%}}
+  </style>
+</head>
+<body>
+<div class="app">
+
+  <div class="hdr">
+    <div class="hdr-left">
+      <div class="game-label">JavaScript Parte 2 · Múltipla Escolha</div>
+      <div class="game-title">JS <span>MCQ2</span></div>
+    </div>
+    <div class="xp-wrap">
+      <div class="xp-top"><span class="xp-label">⚡ XP</span><span class="xp-val" id="xp-val">0 / 2000</span></div>
+      <div class="xp-track"><div class="xp-fill" id="xp-fill"></div></div>
+    </div>
+  </div>
+
+  <div class="module-map" id="mod-map"></div>
+  <div class="prog-strip">
+    <div class="prog-module-name" id="prog-name">—</div>
+    <div class="prog-dots" id="prog-dots"></div>
+    <div class="prog-frac" id="prog-frac">0/20</div>
+  </div>
+  <div class="chip-row" id="chip-row"></div>
+  <div id="q-area"></div>
+
+  <div id="mod-complete">
+    <div class="mc-card" id="mc-card">
+      <div class="mc-inner">
+        <div class="mc-stars" id="mc-stars">⭐⭐⭐</div>
+        <div class="mc-tag">Módulo Completo</div>
+        <div class="mc-title" id="mc-title">—</div>
+        <div class="mc-score-row">
+          <div class="mc-stat"><div class="mc-num ok" id="mc-ok">0</div><div class="mc-lbl">Corretas</div></div>
+          <div class="mc-stat"><div class="mc-num err" id="mc-err">0</div><div class="mc-lbl">Erradas</div></div>
+          <div class="mc-stat"><div class="mc-num xp" id="mc-xp">+0</div><div class="mc-lbl">XP</div></div>
+        </div>
+        <div class="mc-msg" id="mc-msg"></div>
+        <button class="btn-continue" id="btn-continue" onclick="startNextModule()">PRÓXIMO MÓDULO →</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="final-screen">
+    <div class="final-wrap">
+      <div class="final-banner">
+        <div class="final-trophy">🏆</div>
+        <div class="final-title">Parte 2 Concluída!</div>
+        <div class="final-sub" id="final-sub">Resultado final</div>
+        <div class="final-big-score"><span id="f-num">0</span><span class="final-denom">/20</span></div>
+      </div>
+      <div class="final-grid" id="final-grid"></div>
+      <div class="final-actions"><button class="btn-restart" onclick="restart()">↩ Reiniciar</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const MODULES = [
+  {
+    id:'tarefas', name:'Lista de Tarefas', icon:'✅',
+    color:'#e63946', glow:'rgba(230,57,70,.25)', bg:'rgba(230,57,70,.1)', bg2:'rgba(230,57,70,.15)',
+    questions:[
+      {
+        tag:'createElement + appendChild',
+        title:'Ordem das operações',
+        code:null,
+        text:'Qual é a <strong>ordem correta</strong> de operações para adicionar um novo item à lista de tarefas?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>appendChild(li)</code> → <code>createElement(\'li\')</code> → definir textContent'},
+          {letter:'B', text:'<code>createElement(\'li\')</code> → <code>appendChild(li)</code> → definir textContent'},
+          {letter:'C', text:'<code>createElement(\'li\')</code> → definir textContent → <code>appendChild(li)</code>', correct:true},
+          {letter:'D', text:'definir textContent → <code>createElement(\'li\')</code> → <code>appendChild(li)</code>'},
+          {letter:'E', text:'Qualquer ordem funciona — o DOM se atualiza automaticamente'},
+        ],
+        explanation:'A ordem é: <strong>criar</strong> → <strong>configurar</strong> → <strong>inserir</strong>. Criar o elemento, definir seu conteúdo/atributos, e só então adicionar ao DOM. Tentar definir textContent antes de criar causaria erro; fazer appendChild antes de configurar adicionaria um elemento vazio.'
+      },
+      {
+        tag:'trim()',
+        title:'Por que usar trim()?',
+        code:`<span class="ck">const</span> <span class="co">taskText</span> = taskInput.value.<span class="cf">trim</span>();
+<span class="ck">if</span> (taskText !== <span class="cs">''</span>) { <span class="cm">/* adiciona */</span> }`,
+        text:'Por que é importante usar <code>.trim()</code> no valor do input antes de verificar se está vazio?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Porque <code>trim()</code> converte o texto para maiúsculas, padronizando o formato'},
+          {letter:'B', text:'Sem <code>trim()</code>, o campo nunca seria considerado vazio'},
+          {letter:'C', text:'Para evitar que uma tarefa composta só de espaços em branco seja considerada válida', correct:true},
+          {letter:'D', text:'Porque <code>trim()</code> é necessário para comparar strings com <code>!==</code>'},
+          {letter:'E', text:'Para remover tags HTML que o usuário possa ter digitado'},
+        ],
+        explanation:'<code>trim()</code> remove espaços do início e fim. Sem ele, <code>"   "</code> (só espaços) seria diferente de <code>""</code> e passaria na validação <code>!== \'\'</code>, adicionando uma tarefa visivelmente vazia à lista.'
+      },
+      {
+        tag:'textContent vs innerHTML',
+        title:'textContent ou innerHTML?',
+        code:`<span class="ck">const</span> <span class="co">li</span> = document.<span class="cf">createElement</span>(<span class="cs">'li'</span>);
+<span class="co">li</span>.<span class="co">textContent</span> = taskText; <span class="cm">// ← por que não innerHTML?</span>`,
+        text:'Por que é mais seguro usar <code>textContent</code> em vez de <code>innerHTML</code> para inserir o texto digitado pelo usuário?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>textContent</code> é mais rápido que <code>innerHTML</code> em todos os casos'},
+          {letter:'B', text:'<code>innerHTML</code> não funciona em elementos <code>&lt;li&gt;</code>'},
+          {letter:'C', text:'<code>textContent</code> trata o conteúdo como texto puro, evitando execução de HTML/scripts maliciosos digitados pelo usuário', correct:true},
+          {letter:'D', text:'<code>innerHTML</code> apagaria os outros itens da lista'},
+          {letter:'E', text:'Não há diferença prática entre os dois para textos simples'},
+        ],
+        explanation:'<code>textContent</code> insere o conteúdo como <strong>texto literal</strong> — se o usuário digitar <code>&lt;script&gt;alert()&lt;/script&gt;</code>, aparece como texto na tela. Com <code>innerHTML</code>, esse script seria executado — um vetor clássico de ataque XSS (Cross-Site Scripting).'
+      },
+      {
+        tag:'classList.toggle',
+        title:'O que toggle faz exatamente?',
+        code:`<span class="co">li</span>.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, () => {
+  <span class="co">li</span>.classList.<span class="cf">toggle</span>(<span class="cs">'completed'</span>);
+});`,
+        text:'O usuário clica 3 vezes seguidas no mesmo item. Qual é o estado da classe <code>"completed"</code> após cada clique?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'1º: sem classe | 2º: sem classe | 3º: tem a classe'},
+          {letter:'B', text:'1º: tem a classe | 2º: tem a classe | 3º: sem a classe'},
+          {letter:'C', text:'1º: tem a classe | 2º: sem a classe | 3º: tem a classe', correct:true},
+          {letter:'D', text:'Após o 1º clique, a classe fica permanentemente adicionada'},
+          {letter:'E', text:'<code>toggle</code> só funciona no primeiro clique'},
+        ],
+        explanation:'<code>toggle</code> inverte o estado a cada chamada: sem → com → sem → com... O 1º clique adiciona, o 2º remove, o 3º adiciona novamente. É exatamente esse comportamento que precisamos para marcar/desmarcar tarefas.'
+      },
+      {
+        tag:'appendChild vs prepend',
+        title:'Onde o item é inserido?',
+        code:`taskList.<span class="cf">appendChild</span>(<span class="co">li</span>);`,
+        text:'Com <code>appendChild</code>, onde o novo item da lista é inserido?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'No início da lista, antes de todos os outros itens'},
+          {letter:'B', text:'No meio da lista, em ordem alfabética'},
+          {letter:'C', text:'No final da lista, após todos os itens existentes', correct:true},
+          {letter:'D', text:'Substitui o último item da lista'},
+          {letter:'E', text:'Em uma posição aleatória'},
+        ],
+        explanation:'<code>appendChild</code> sempre insere o elemento como <strong>último filho</strong>. Se quiser inserir no início, use <code>prepend(li)</code>. Para inserir em posição específica, use <code>insertBefore(li, referenceNode)</code> ou <code>insertAdjacentElement()</code>.'
+      },
+    ]
+  },
+  {
+    id:'formulario', name:'Validação Forms', icon:'📋',
+    color:'#f77f00', glow:'rgba(247,127,0,.25)', bg:'rgba(247,127,0,.1)', bg2:'rgba(247,127,0,.15)',
+    questions:[
+      {
+        tag:'event.preventDefault()',
+        title:'O que acontece sem preventDefault?',
+        code:`form.<span class="cf">addEventListener</span>(<span class="cs">'submit'</span>, (<span class="co">event</span>) => {
+  <span class="cm">// sem event.preventDefault()</span>
+  <span class="ck">const</span> <span class="co">nome</span> = form.name.value;
+  console.<span class="cf">log</span>(nome);
+});`,
+        text:'O código acima tem um evento de submit <strong>sem</strong> <code>event.preventDefault()</code>. O que acontece quando o formulário é enviado?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'O <code>console.log</code> exibe o nome normalmente e nada mais acontece'},
+          {letter:'B', text:'Um erro é lançado porque o evento não foi prevenido'},
+          {letter:'C', text:'A página recarrega imediatamente, possivelmente antes do console.log ser exibido', correct:true},
+          {letter:'D', text:'O formulário fica travado e não envia'},
+          {letter:'E', text:'O evento submit é cancelado automaticamente'},
+        ],
+        explanation:'Sem <code>preventDefault()</code>, o comportamento padrão ocorre: o browser envia os dados como query string na URL e <strong>recarrega a página</strong>. Em muitos casos, o <code>console.log</code> mal aparece antes do recarregamento. Por isso sempre bloqueamos o padrão em formulários controlados por JS.'
+      },
+      {
+        tag:'isValid flag',
+        title:'Por que usar a variável isValid?',
+        code:`<span class="ck">let</span> <span class="co">isValid</span> = <span class="ck">true</span>;
+<span class="ck">if</span> (name === <span class="cs">''</span>) { isValid = <span class="ck">false</span>; }
+<span class="ck">if</span> (!email.<span class="cf">includes</span>(<span class="cs">'@'</span>)) { isValid = <span class="ck">false</span>; }
+<span class="ck">if</span> (password.<span class="co">length</span> < <span class="cs">6</span>) { isValid = <span class="ck">false</span>; }
+<span class="ck">if</span> (isValid) { <span class="cm">/* submeter */</span> }`,
+        text:'Por que usar uma variável <code>isValid</code> em vez de aninhar os <code>if</code>s uns dentro dos outros?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Porque aninhar ifs é inválido em JavaScript'},
+          {letter:'B', text:'Para que <strong>todos</strong> os campos sejam validados e todos os erros sejam exibidos de uma vez, não apenas o primeiro', correct:true},
+          {letter:'C', text:'Por questão de performance — variáveis boolean são mais rápidas'},
+          {letter:'D', text:'Porque a validação precisa de uma variável global para funcionar'},
+          {letter:'E', text:'Não há diferença — ambas as abordagens têm o mesmo comportamento'},
+        ],
+        explanation:'Com <code>isValid</code>, todos os checks rodam independentemente. Se nome E email E senha forem inválidos, o usuário vê <strong>todos os erros ao mesmo tempo</strong>. Com ifs aninhados, ele veria apenas o primeiro erro, corrigiria, submeteria de novo, e descobriria o próximo — experiência frustrante.'
+      },
+      {
+        tag:'form.reset()',
+        title:'reset() vs limpar manualmente',
+        code:`<span class="ck">if</span> (isValid) {
+  alert(<span class="cs">'Sucesso!'</span>);
+  form.<span class="cf">reset</span>(); <span class="cm">// vs limpar cada campo</span>
+}`,
+        text:'Qual é a vantagem de usar <code>form.reset()</code> em vez de limpar cada campo manualmente (<code>input.value = \'\'</code>)?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>form.reset()</code> é mais rápido em performance'},
+          {letter:'B', text:'<code>form.reset()</code> limpa todos os campos e restaura valores padrão em uma chamada, independente de quantos campos o form tenha', correct:true},
+          {letter:'C', text:'<code>form.reset()</code> também envia os dados para o servidor'},
+          {letter:'D', text:'Limpar manualmente pode causar erros em inputs do tipo email'},
+          {letter:'E', text:'Não há diferença — são equivalentes em todos os aspectos'},
+        ],
+        explanation:'<code>form.reset()</code> reseta <strong>todos</strong> os campos para seus valores iniciais (atributo <code>value</code> do HTML ou vazio). Se o form ganhar novos campos no futuro, o reset funciona automaticamente. Limpar manualmente exigiria atualizar o código a cada novo campo adicionado.'
+      },
+      {
+        tag:'Validação de e-mail',
+        title:'Limitação da validação com includes()',
+        code:`<span class="ck">if</span> (!email.<span class="cf">includes</span>(<span class="cs">'@'</span>)) {
+  <span class="cm">// e-mail inválido</span>
+}`,
+        text:'A validação de e-mail com <code>.includes(\'@\')</code> é simples mas tem limitações. Qual e-mail <strong>passaria</strong> nessa validação mas seria inválido?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>usuario@email.com</code>'},
+          {letter:'B', text:'<code>teste@</code>', correct:true},
+          {letter:'C', text:'<code>semArroba.com</code>'},
+          {letter:'D', text:'<code>a@b</code>'},
+          {letter:'E', text:'<code>@dominio.com</code>'},
+        ],
+        explanation:'<code>teste@</code> contém o <code>@</code>, então <code>includes(\'@\')</code> retorna <code>true</code> — considerado válido. Mas não é um e-mail real. Para validação robusta, usa-se <strong>Regex</strong>: <code>/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/</code>. O tipo <code>input[type="email"]</code> do HTML também oferece validação nativa.'
+      },
+      {
+        tag:'event.target vs form',
+        title:'Acessar campos do formulário',
+        code:`form.<span class="cf">addEventListener</span>(<span class="cs">'submit'</span>, (<span class="co">event</span>) => {
+  <span class="ck">const</span> <span class="co">nome</span> = form.name.value; <span class="cm">// opção A</span>
+  <span class="ck">const</span> <span class="co">nome</span> = event.target.name.value; <span class="cm">// opção B</span>
+});`,
+        text:'No handler do submit, <code>form.name.value</code> e <code>event.target.name.value</code> parecem diferentes mas funcionam igual. Por quê?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'São coincidências de nomenclatura — não têm relação'},
+          {letter:'B', text:'<code>event.target</code> é sempre o <code>document</code>, que contém o form'},
+          {letter:'C', text:'<code>event.target</code> é o elemento que disparou o evento — no submit do form, é o próprio elemento form', correct:true},
+          {letter:'D', text:'<code>event.target</code> aponta para o botão submit, que tem acesso ao form pai'},
+          {letter:'E', text:'<code>event.target</code> é sempre <code>undefined</code> em eventos de formulário'},
+        ],
+        explanation:'<code>event.target</code> é o elemento que <strong>disparou o evento</strong>. No <code>submit</code> de um <code>&lt;form&gt;</code>, o target é o próprio form — então <code>event.target === form</code>. Usar <code>event.target</code> é útil quando você não tem referência direta ao elemento (ex: handlers genéricos).'
+      },
+    ]
+  },
+  {
+    id:'erros', name:'Try/Catch & Async', icon:'⚡',
+    color:'#7b2d8b', glow:'rgba(123,45,139,.3)', bg:'rgba(123,45,139,.1)', bg2:'rgba(123,45,139,.15)',
+    questions:[
+      {
+        tag:'try/catch/finally',
+        title:'O bloco finally',
+        code:`<span class="ck">try</span> {
+  <span class="ck">throw</span> <span class="ck">new</span> Error(<span class="cs">'ops'</span>);
+} <span class="ck">catch</span> (<span class="co">e</span>) {
+  console.<span class="cf">log</span>(<span class="cs">'catch'</span>);
+} <span class="ck">finally</span> {
+  console.<span class="cf">log</span>(<span class="cs">'finally'</span>);
+}`,
+        text:'O código acima lança um erro propositalmente. O que aparece no console?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Apenas <code>catch</code>'},
+          {letter:'B', text:'Apenas <code>finally</code>'},
+          {letter:'C', text:'<code>catch</code> e depois <code>finally</code>', correct:true},
+          {letter:'D', text:'<code>finally</code> e depois <code>catch</code>'},
+          {letter:'E', text:'Nada — o erro não capturado impede a execução'},
+        ],
+        explanation:'<code>catch</code> executa quando há erro, <code>finally</code> executa <strong>sempre</strong>, independente. A ordem é: try → catch (se houver erro) → finally. O finally é ideal para limpeza de recursos: esconder spinners, fechar conexões, liberar memória.'
+      },
+      {
+        tag:'throw new Error',
+        title:'Lançar erro vs retornar false',
+        code:`<span class="cm">// Opção A — throw</span>
+<span class="ck">if</span> (num2 === <span class="cs">0</span>) <span class="ck">throw</span> <span class="ck">new</span> Error(<span class="cs">'Divisão por zero'</span>);
+
+<span class="cm">// Opção B — return</span>
+<span class="ck">if</span> (num2 === <span class="cs">0</span>) <span class="ck">return</span> <span class="ck">false</span>;`,
+        text:'Qual é a principal vantagem de usar <code>throw new Error()</code> em vez de simplesmente retornar <code>false</code> para indicar um erro?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>throw</code> é mais rápido que <code>return</code>'},
+          {letter:'B', text:'O erro lançado carrega uma <strong>mensagem descritiva</strong> e é capturado pelo bloco <code>catch</code>, centralizando o tratamento de erros', correct:true},
+          {letter:'C', text:'<code>return false</code> não funciona dentro de funções assíncronas'},
+          {letter:'D', text:'<code>throw</code> permite que o erro se propague para outros arquivos'},
+          {letter:'E', text:'Não há diferença — são intercambiáveis'},
+        ],
+        explanation:'<code>throw</code> lança um objeto de erro com mensagem descritiva que o <code>catch</code> captura — você não precisa verificar o valor de retorno em cada chamada. Com <code>return false</code>, quem chamou a função precisa checar o retorno manualmente, e a mensagem de erro se perde.'
+      },
+      {
+        tag:'async/await vs .then()',
+        title:'async sem await',
+        code:`<span class="ck">async</span> <span class="ck">function</span> <span class="cf">buscar</span>() {
+  <span class="ck">const</span> <span class="co">res</span> = fetch(url); <span class="cm">// sem await!</span>
+  <span class="ck">const</span> <span class="co">data</span> = <span class="ck">await</span> <span class="co">res</span>.<span class="cf">json</span>();
+  console.<span class="cf">log</span>(data);
+}`,
+        text:'O <code>await</code> foi esquecido no <code>fetch</code>. O que acontece quando <code>res.json()</code> é chamado?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'O código funciona normalmente — o await no json() compensa'},
+          {letter:'B', text:'<code>res</code> é uma Promise não resolvida, e chamar <code>.json()</code> nela causa um TypeError', correct:true},
+          {letter:'C', text:'<code>res</code> aguarda automaticamente por ser uma variável <code>const</code>'},
+          {letter:'D', text:'O console.log exibe <code>undefined</code> mas não lança erro'},
+          {letter:'E', text:'O fetch é ignorado e <code>res</code> fica como <code>null</code>'},
+        ],
+        explanation:'Sem <code>await</code>, <code>res</code> recebe a <strong>Promise</strong> não resolvida, não o objeto Response. Chamar <code>.json()</code> em uma Promise causa <code>TypeError: res.json is not a function</code>. Cada <code>await</code> é obrigatório para "abrir" a Promise e pegar o valor real.'
+      },
+      {
+        tag:'response.ok',
+        title:'fetch e erros HTTP',
+        code:`<span class="ck">const</span> <span class="co">res</span> = <span class="ck">await</span> fetch(<span class="cs">'https://api.com/usuario/999'</span>);
+<span class="cm">// O servidor retornou status 404</span>
+console.<span class="cf">log</span>(<span class="cs">'chegou aqui?'</span>);`,
+        text:'A API retornou status <code>404 Not Found</code>. O <code>console.log</code> após o fetch é executado?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Não — o fetch rejeita a Promise em qualquer erro HTTP'},
+          {letter:'B', text:'Não — o await interrompe a execução ao receber status 4xx'},
+          {letter:'C', text:'Sim — o fetch resolve a Promise mesmo com status 404. O erro precisa ser checado manualmente', correct:true},
+          {letter:'D', text:'Depende do servidor — alguns rejeitam a Promise, outros não'},
+          {letter:'E', text:'Sim, mas <code>res</code> será <code>null</code>'},
+        ],
+        explanation:'<code>fetch</code> só rejeita a Promise em <strong>falhas de rede</strong> (sem internet, DNS falhou, etc). Respostas HTTP com qualquer status (200, 404, 500...) resolvem normalmente. Por isso é obrigatório checar <code>if (!response.ok) throw new Error(...)</code> para tratar erros de servidor.'
+      },
+      {
+        tag:'try/catch com async/await',
+        title:'Propagação de erros assíncronos',
+        code:`<span class="ck">async</span> <span class="ck">function</span> <span class="cf">buscar</span>() {
+  <span class="ck">try</span> {
+    <span class="ck">const</span> <span class="co">res</span> = <span class="ck">await</span> fetch(<span class="cs">'url-invalida'</span>);
+    <span class="ck">const</span> <span class="co">data</span> = <span class="ck">await</span> <span class="co">res</span>.<span class="cf">json</span>();
+  } <span class="ck">catch</span> (<span class="co">err</span>) {
+    console.<span class="cf">log</span>(<span class="cs">'erro capturado:'</span>, err.message);
+  }
+}`,
+        text:'A URL é inválida e o fetch falha com erro de rede. O bloco <code>catch</code> é executado?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Não — o catch só captura erros síncronos'},
+          {letter:'B', text:'Não — erros de rede precisam de um <code>.catch()</code> separado'},
+          {letter:'C', text:'Sim — dentro de funções async, try/catch captura tanto erros síncronos quanto rejeições de Promises com await', correct:true},
+          {letter:'D', text:'Sim, mas apenas se o erro for do tipo <code>NetworkError</code>'},
+          {letter:'E', text:'Depende do browser'},
+        ],
+        explanation:'Dentro de <code>async function</code>, o <code>try/catch</code> captura <strong>rejeições de Promises</strong> com <code>await</code> — como se fossem erros síncronos. É o equivalente ao <code>.catch()</code> em cadeia de Promises, mas com sintaxe muito mais legível.'
+      },
+    ]
+  },
+  {
+    id:'avancado', name:'DOM Avançado', icon:'🎛️',
+    color:'#2dc653', glow:'rgba(45,198,83,.25)', bg:'rgba(45,198,83,.1)', bg2:'rgba(45,198,83,.15)',
+    questions:[
+      {
+        tag:'Menu Hamburguer',
+        title:'CSS + JS no menu hamburguer',
+        code:`<span class="cm">// JS: toggle da classe</span>
+navList.classList.<span class="cf">toggle</span>(<span class="cs">'active'</span>);
+
+<span class="cm">/* CSS: o que a classe faz */</span>
+<span class="cm">.nav-list { display: none; }</span>
+<span class="cm">.nav-list.active { display: flex; }</span>`,
+        text:'Por que o menu hamburguer divide a responsabilidade entre CSS e JS dessa forma?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Porque display:none não pode ser definido diretamente no JavaScript'},
+          {letter:'B', text:'O CSS define a aparência (o que mostrar/esconder), o JS controla o estado (quando) — separação de responsabilidades', correct:true},
+          {letter:'C', text:'É uma questão de performance — CSS é mais rápido que JS para animações'},
+          {letter:'D', text:'Porque classList.toggle não aceita propriedades CSS inline'},
+          {letter:'E', text:'Para compatibilidade com Internet Explorer'},
+        ],
+        explanation:'Separação de responsabilidades: o <strong>CSS define como</strong> o elemento deve aparecer com ou sem a classe, e o <strong>JS define quando</strong> a classe é aplicada. Isso facilita trocar o visual (basta mudar o CSS) sem tocar no JS, e vice-versa.'
+      },
+      {
+        tag:'setInterval / clearInterval',
+        title:'Problema sem clearInterval',
+        code:`prevButton.<span class="cf">addEventListener</span>(<span class="cs">'click'</span>, () => {
+  prevSlide();
+  <span class="cm">// stopAutoSlide(); ← comentado</span>
+  startAutoSlide(); <span class="cm">// cria novo intervalo</span>
+});`,
+        text:'O <code>clearInterval</code> foi removido antes do <code>startAutoSlide</code>. O que acontece após o usuário clicar no botão algumas vezes?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Nada diferente — <code>startAutoSlide</code> substitui o intervalo anterior automaticamente'},
+          {letter:'B', text:'O carrossel para de funcionar após vários cliques'},
+          {letter:'C', text:'Cada clique cria um novo intervalo sem cancelar o anterior — o carrossel acelera progressivamente', correct:true},
+          {letter:'D', text:'Um erro é lançado indicando conflito de intervalos'},
+          {letter:'E', text:'O browser limita automaticamente a um intervalo por página'},
+        ],
+        explanation:'<code>setInterval</code> retorna um ID único e <strong>não substitui intervalos anteriores</strong>. Sem <code>clearInterval</code>, cada clique cria um novo timer. Com 3 cliques, há 4 timers rodando simultaneamente (1 inicial + 3 dos cliques), e o slide muda 4x mais rápido que o esperado.'
+      },
+      {
+        tag:'querySelectorAll + forEach',
+        title:'Iterar sobre NodeList',
+        code:`<span class="ck">const</span> <span class="co">slides</span> = document.<span class="cf">querySelectorAll</span>(<span class="cs">'.carousel-slide'</span>);
+slides.<span class="cf">forEach</span>((<span class="co">slide</span>, <span class="co">i</span>) => {
+  slide.classList.<span class="cf">toggle</span>(<span class="cs">'active'</span>, i === currentSlide);
+});`,
+        text:'Por que o código usa <code>forEach</code> para percorrer os slides em vez de um loop <code>for</code> tradicional?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Porque NodeList não suporta loop <code>for</code>'},
+          {letter:'B', text:'<code>forEach</code> é mais legível e fornece o índice como segundo parâmetro, evitando uma variável de controle separada', correct:true},
+          {letter:'C', text:'<code>forEach</code> executa em paralelo, tornando o carrossel mais rápido'},
+          {letter:'D', text:'Para compatibilidade com browsers antigos que não suportam <code>for</code>'},
+          {letter:'E', text:'Porque a NodeList muda durante a iteração'},
+        ],
+        explanation:'NodeList suporta <code>forEach</code> nativo e o resultado é mais legível. O segundo parâmetro <code>i</code> fornece o índice automaticamente, permitindo <code>i === currentSlide</code> para determinar qual slide ativar. O loop <code>for</code> também funcionaria, mas exigiria uma variável de controle extra.'
+      },
+      {
+        tag:'toggle com force flag',
+        title:'toggle com segundo argumento',
+        code:`slide.classList.<span class="cf">toggle</span>(<span class="cs">'active'</span>, i === index);
+<span class="cm">// equivale a:</span>
+<span class="ck">if</span> (i === index) slide.classList.<span class="cf">add</span>(<span class="cs">'active'</span>);
+<span class="ck">else</span>             slide.classList.<span class="cf">remove</span>(<span class="cs">'active'</span>);`,
+        text:'Qual é o comportamento do segundo argumento de <code>classList.toggle(classe, force)</code>?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'Define quantas vezes a classe pode ser toggled'},
+          {letter:'B', text:'Especifica a animação CSS a usar quando a classe muda'},
+          {letter:'C', text:'Quando <code>true</code> força a adição da classe; quando <code>false</code> força a remoção — sem verificar o estado atual', correct:true},
+          {letter:'D', text:'Define um delay em ms antes de aplicar o toggle'},
+          {letter:'E', text:'O segundo argumento não existe — apenas o primeiro é suportado'},
+        ],
+        explanation:'O "force flag" converte o <code>toggle</code> em <code>add</code> (force=true) ou <code>remove</code> (force=false), <strong>independente do estado atual</strong>. Isso é diferente do toggle normal que inverte o estado. Muito útil quando você tem uma condição booleana que determina diretamente se a classe deve estar presente ou não.'
+      },
+      {
+        tag:'Escopo e closures',
+        title:'Variável no loop do carrossel',
+        code:`<span class="ck">let</span> <span class="co">currentSlide</span> = <span class="cs">0</span>;
+
+<span class="ck">function</span> <span class="cf">nextSlide</span>() {
+  currentSlide = (currentSlide + <span class="cs">1</span>) % slides.length;
+  <span class="cf">showSlide</span>(currentSlide);
+}`,
+        text:'Por que <code>currentSlide</code> é declarado com <code>let</code> fora das funções, e não como <code>const</code> dentro de cada função?',
+        snippet:null,
+        options:[
+          {letter:'A', text:'<code>const</code> não pode ser usado com números'},
+          {letter:'B', text:'Porque <code>currentSlide</code> precisa ser <strong>compartilhado e modificado</strong> entre as funções <code>nextSlide</code>, <code>prevSlide</code> e <code>showSlide</code>', correct:true},
+          {letter:'C', text:'Por uma convenção de estilo — <code>let</code> é sempre preferível a <code>const</code> fora de funções'},
+          {letter:'D', text:'Para que o carrossel funcione após recarregar a página'},
+          {letter:'E', text:'<code>let</code> no escopo global tem melhor performance que <code>const</code> local'},
+        ],
+        explanation:'<code>currentSlide</code> é um <strong>estado compartilhado</strong>: <code>nextSlide</code> incrementa, <code>prevSlide</code> decrementa, e <code>showSlide</code> usa o valor atual. Se fosse uma variável local em cada função, cada função teria seu próprio valor independente e perderiam o controle de qual slide está ativo.'
+      },
+    ]
+  },
+];
+
+// ── ESTADO ──
+let modIdx=0, qIdx=0, totalXP=0;
+const MAX_XP=2000;
+const results=[[], [], [], []];
+let phase='quiz', selectedOpt=null;
+
+function applyTheme(mod){
+  const r=document.documentElement.style;
+  r.setProperty('--mc',mod.color);
+  r.setProperty('--mc-glow',mod.glow);
+  r.setProperty('--mc-dot',mod.color);
+  r.setProperty('--mc-btn',mod.color);
+}
+
+function renderModMap(){
+  document.getElementById('mod-map').innerHTML=MODULES.map((m,i)=>{
+    const done=i<modIdx||(phase==='final'&&i<=modIdx);
+    const active=i===modIdx&&phase==='quiz';
+    const cls=done?'done':active?'active':'';
+    const sc=done?`${results[i].filter(Boolean).length}/5 ✓`:active?'EM JOGO':'—';
+    return `<div class="mod-card ${cls}" style="--mc:${m.color}">
+      <div class="mod-lock">${i>modIdx?'🔒':''}</div>
+      <div class="mod-icon">${m.icon}</div>
+      <div class="mod-name">${m.name}</div>
+      <div class="mod-score">${sc}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderChips(){
+  const row=document.getElementById('chip-row');
+  row.innerHTML='';
+  MODULES.forEach((m,mi)=>{
+    if(mi>0){const s=document.createElement('div');s.className='chip sep';row.appendChild(s);}
+    m.questions.forEach((_,qi)=>{
+      const gi=mi*5+qi, d=document.createElement('div');
+      d.className='chip'; d.id=`chip-${gi}`; d.textContent=qi+1;
+      const res=results[mi][qi];
+      if(res===true)d.classList.add('c');
+      if(res===false)d.classList.add('e');
+      if(mi===modIdx&&qi===qIdx&&phase==='quiz'){d.style.borderColor=MODULES[mi].color;d.style.color=MODULES[mi].color;}
+      row.appendChild(d);
+    });
+  });
+}
+
+function markChip(mi,qi,ok){
+  const d=document.getElementById(`chip-${mi*5+qi}`);
+  if(!d)return;
+  d.classList.remove('c','e'); d.classList.add(ok?'c':'e');
+  d.style.borderColor=''; d.style.color='';
+  d.textContent=ok?'✓':'✗';
+}
+
+function renderProg(){
+  const mod=MODULES[Math.min(modIdx,MODULES.length-1)];
+  const total=modIdx*5+qIdx;
+  document.getElementById('prog-name').textContent=mod.name;
+  document.getElementById('prog-frac').textContent=`${Math.min(total,20)}/20`;
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},(_,i)=>{
+    const cls=i<qIdx?'done':i===qIdx?'active':'';
+    return `<div class="pdot ${cls}"></div>`;
+  }).join('');
+}
+
+function addXP(v){
+  totalXP=Math.min(totalXP+v,MAX_XP);
+  document.getElementById('xp-fill').style.width=(totalXP/MAX_XP*100)+'%';
+  document.getElementById('xp-val').textContent=`${totalXP} / ${MAX_XP}`;
+}
+
+function renderQuestion(){
+  selectedOpt=null;
+  const mod=MODULES[modIdx], q=mod.questions[qIdx];
+  applyTheme(mod); renderModMap(); renderChips(); renderProg();
+  const codeHtml=q.snippet?`<div class="code-ctx">${q.snippet}</div>`:'';
+  const optsHtml=q.options.map(o=>`
+    <div class="opt" data-letter="${o.letter}" onclick="selectOpt('${o.letter}')">
+      <div class="opt-letter">${o.letter}</div>
+      <div class="opt-text">${o.text}</div>
+      <div class="opt-check"></div>
+    </div>`).join('');
+  document.getElementById('q-area').innerHTML=`
+    <div class="q-card" id="active-card">
+      <div class="q-head">
+        <span class="q-badge">Módulo ${modIdx+1} · Questão ${qIdx+1}/5</span>
+        <span class="q-tag">${q.tag}</span>
+      </div>
+      <div class="q-body">
+        <div class="q-title">${q.title}</div>
+        ${q.code?`<div class="code-ctx">${q.code}</div>`:''}
+        <p class="q-text">${q.text}</p>
+        <div class="options" id="options">${optsHtml}</div>
+        <button class="btn-confirm" id="btn-confirm" onclick="confirmAnswer()" disabled>CONFIRMAR →</button>
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-next" id="btn-next" onclick="advanceQuestion()">
+          ${qIdx<4?'Próxima →':'Finalizar Módulo →'}
+        </button>
+      </div>
+    </div>`;
+}
+
+function selectOpt(letter){
+  if(document.getElementById('btn-next').classList.contains('show'))return;
+  selectedOpt=letter;
+  document.querySelectorAll('.opt').forEach(el=>el.classList.toggle('selected',el.dataset.letter===letter));
+  const btn=document.getElementById('btn-confirm');
+  btn.classList.add('ready'); btn.disabled=false;
+}
+
+function confirmAnswer(){
+  if(!selectedOpt)return;
+  const q=MODULES[modIdx].questions[qIdx];
+  const correct=q.options.find(o=>o.correct).letter;
+  const ok=selectedOpt===correct;
+  results[modIdx][qIdx]=ok; markChip(modIdx,qIdx,ok);
+  document.querySelectorAll('.opt').forEach(el=>{
+    el.classList.add('disabled');
+    const l=el.dataset.letter;
+    if(l===correct){
+      el.classList.add(ok?'correct':'reveal-correct');
+      el.querySelector('.opt-check').textContent='✓';
+    } else if(l===selectedOpt&&!ok){
+      el.classList.add('wrong');
+      el.querySelector('.opt-check').textContent='✗';
+    }
+  });
+  document.getElementById('btn-confirm').disabled=true;
+  document.getElementById('btn-confirm').style.display='none';
+  const fb=document.getElementById('feedback'), card=document.getElementById('active-card');
+  if(ok){
+    addXP(80); card.classList.add('c-ok','pop'); setTimeout(()=>card.classList.remove('pop'),300);
+    fb.className='feedback ok show';
+    fb.innerHTML=`<div class="fb-head">✓ Correto! +80 XP</div>${q.explanation}`;
+  } else {
+    card.classList.add('c-err','shake'); setTimeout(()=>card.classList.remove('shake'),300);
+    fb.className='feedback fail show';
+    fb.innerHTML=`<div class="fb-head">✗ Incorreto — a resposta era ${correct}</div>${q.explanation}`;
+  }
+  document.getElementById('btn-next').classList.add('show');
+}
+
+function advanceQuestion(){
+  if(qIdx<4){qIdx++;renderQuestion();}
+  else{showModComplete();}
+}
+
+function showModComplete(){
+  phase='mod-complete';
+  document.getElementById('q-area').innerHTML='';
+  const mod=MODULES[modIdx], res=results[modIdx], ok=res.filter(Boolean).length, pct=ok/5;
+  applyTheme(mod);
+  document.getElementById('mc-stars').textContent=pct===1?'⭐⭐⭐':pct>=.6?'⭐⭐':'⭐';
+  document.getElementById('mc-title').textContent=mod.name;
+  document.getElementById('mc-ok').textContent=ok;
+  document.getElementById('mc-err').textContent=5-ok;
+  document.getElementById('mc-xp').textContent=`+${ok*80}`;
+  document.getElementById('mc-msg').textContent=[[1,'Perfeito! Módulo dominado.'],[.8,'Muito bem!'],[.6,'Bom progresso — revise os erros.'],[0,'Continue! Cada erro é aprendizado.']].find(([t])=>pct>=t)[1];
+  document.getElementById('btn-continue').textContent=modIdx===MODULES.length-1?'VER RESULTADO FINAL →':'PRÓXIMO MÓDULO →';
+  document.getElementById('mod-complete').classList.add('show');
+  renderModMap(); renderChips();
+}
+
+function startNextModule(){
+  document.getElementById('mod-complete').classList.remove('show');
+  phase='quiz';
+  if(modIdx===MODULES.length-1){showFinal();return;}
+  modIdx++; qIdx=0; selectedOpt=null; renderQuestion();
+}
+
+function showFinal(){
+  phase='final';
+  document.getElementById('q-area').innerHTML='';
+  const totalOk=results.flat().filter(Boolean).length;
+  document.getElementById('f-num').textContent=totalOk;
+  const pct=totalOk/20;
+  document.getElementById('final-sub').textContent=[[1,'🏆 Perfeito!'],[.85,'🔥 Excelente!'],[.7,'👍 Muito bom!'],[.5,'💪 Bom início!'],[0,'📚 Continue praticando!']].find(([t])=>pct>=t)[1];
+  document.getElementById('final-grid').innerHTML=MODULES.map((m,i)=>{
+    const res=results[i], ok=res.filter(Boolean).length;
+    const color=ok===5?'var(--ok)':ok>=3?m.color:'var(--err)';
+    const chips=res.map(r=>`<div class="fc-chip ${r?'c':'e'}">${r?'✓':'✗'}</div>`).join('');
+    return `<div class="final-cell"><div class="fc-mod" style="color:${m.color}">${m.icon} ${m.name}</div><div class="fc-score" style="color:${color}">${ok}/5</div><div class="fc-chips">${chips}</div></div>`;
+  }).join('');
+  document.getElementById('final-screen').classList.add('show');
+  modIdx=MODULES.length; renderModMap(); renderChips();
+  document.getElementById('prog-name').textContent='Completo';
+  document.getElementById('prog-frac').textContent='20/20';
+  document.getElementById('prog-dots').innerHTML=Array.from({length:5},()=>'<div class="pdot done"></div>').join('');
+}
+
+function restart(){
+  modIdx=0;qIdx=0;totalXP=0;phase='quiz';selectedOpt=null;
+  results.forEach(r=>r.length=0);
+  document.getElementById('xp-fill').style.width='0%';
+  document.getElementById('xp-val').textContent='0 / 2000';
+  document.getElementById('final-screen').classList.remove('show');
+  document.getElementById('mod-complete').classList.remove('show');
+  applyTheme(MODULES[0]); renderQuestion();
+}
+
+applyTheme(MODULES[0]);
+renderQuestion();
+</script>
+</body>
+</html>
