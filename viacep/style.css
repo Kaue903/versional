@@ -1,0 +1,60 @@
+body {
+    background-color: rgb(182, 246, 252);
+}
+
+#menu{
+  background-color: #95cdcc;
+  width: 280px;        /* largura do retângulo */
+  padding:30px;       /* espaço interno */
+  margin: 0 auto;      /* centraliza */
+  border-radius: 10px; /* cantos arredondados */
+}
+
+#menu input {
+  width: 250px;
+  padding: 8px;
+  border-color: rgb(250, 250, 250);
+  border-top-left-radius: 18px;
+  margin-bottom: 20px;
+}
+
+#meuBotao {
+    position: absolute;
+    right: 40px; /* coloca no lado direito */
+    padding: 5px 10px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 20px;
+    background-color: rgb(151, 151, 151);
+    color: white;
+}
+
+.button{
+    border-radius: 10px;
+    background-color: rgb(151, 151, 151);
+    color: white;
+    display: block;
+    margin: 10px auto; /* centraliza */
+    padding: 10px
+}
+
+.titulo {
+    text-align: center;
+    margin-top: 40px;
+    color: rgb(5, 63, 105);
+    transition: color 0.5s ease;
+    font-style: italic;
+    font-size: 40px;
+    text-shadow: 2px 2px 5px rgb(73, 119, 158);
+}
+
+
+/* Modo Escuro */
+.dark-mode {
+    background-color: #0f6c71;
+}
+
+.dark-mode .titulo {
+    color: rgb(147, 217, 255);
+    text-shadow: 2px 2px 5px rgb(11, 19, 64);
+}
